@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清山 莉奈 - 子ども学科 研究紹介</title>
+  <style>
+    :root {
+      --primary: #2c6e49;
+      --primary-light: #4c956c;
+      --accent: #fefee3;
+      --bg: #fafaf5;
+      --text: #2d2d2d;
+      --text-light: #555;
+      --white: #ffffff;
+      --border: #e0e0d8;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.8;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: var(--white);
+      padding: 80px 24px 60px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -40%;
+      right: -20%;
+      width: 500px;
+      height: 500px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 50%;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 400px;
+      height: 400px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 50%;
+    }
+
+    .hero-label {
+      display: inline-block;
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 20px;
+      padding: 4px 18px;
+      margin-bottom: 20px;
+      opacity: 0.9;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .hero .name-en {
+      font-size: 0.95rem;
+      font-weight: 400;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
+    .hero .position {
+      font-size: 1rem;
+      opacity: 0.85;
+      margin-bottom: 24px;
+    }
+
+    .hero .field {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+    }
+
+    /* Container */
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Section */
+    section {
+      padding: 56px 0;
+    }
+
+    section + section {
+      border-top: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 24px;
+      padding-left: 14px;
+      border-left: 4px solid var(--primary-light);
+    }
+
+    /* Affiliations */
+    .affiliations {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .affiliation-tag {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.82rem;
+      color: var(--text-light);
+    }
+
+    /* Research themes */
+    .theme-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 14px;
+      position: relative;
+      padding-left: 56px;
+    }
+
+    .theme-card .num {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: 28px;
+      height: 28px;
+      background: var(--primary);
+      color: var(--white);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+
+    .theme-card p {
+      font-size: 0.92rem;
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* Research detail */
+    .research-body p {
+      font-size: 0.95rem;
+      line-height: 2;
+      margin-bottom: 16px;
+      color: var(--text);
+      text-align: justify;
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, #f0f7f2 0%, #fefee3 100%);
+      border-left: 4px solid var(--primary-light);
+      border-radius: 0 10px 10px 0;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+
+    .highlight-box p {
+      font-size: 0.92rem;
+      line-height: 1.9;
+      color: var(--text);
+      margin-bottom: 0;
+    }
+
+    /* Message */
+    .message-box {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px 28px;
+      position: relative;
+    }
+
+    .message-box::before {
+      content: "\201C";
+      position: absolute;
+      top: 8px;
+      left: 16px;
+      font-size: 3.5rem;
+      color: var(--primary-light);
+      opacity: 0.25;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+
+    .message-box p {
+      font-size: 0.93rem;
+      line-height: 2;
+      color: var(--text);
+      text-align: justify;
+    }
+
+    /* Footer */
+    footer {
+      background: var(--primary);
+      color: rgba(255,255,255,0.7);
+      text-align: center;
+      padding: 28px 24px;
+      font-size: 0.8rem;
+      letter-spacing: 0.03em;
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      .hero {
+        padding: 56px 20px 44px;
+      }
+      .hero h1 {
+        font-size: 1.7rem;
+      }
+      section {
+        padding: 40px 0;
+      }
+      .section-title {
+        font-size: 1.15rem;
+      }
+      .theme-card {
+        padding-left: 48px;
+      }
+      .message-box {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-label">子ども学科 研究紹介</div>
+    <h1>清山 莉奈</h1>
+    <p class="name-en">Seiyama, Rina</p>
+    <p class="position">助教</p>
+    <span class="field">専門分野：乳幼児教育学 ・ 保育学</span>
+  </header>
+
+  <!-- Affiliations -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">所属学会</h2>
+      <div class="affiliations">
+        <span class="affiliation-tag">日本乳幼児教育学会</span>
+        <span class="affiliation-tag">日本保育学会</span>
+        <span class="affiliation-tag">日本保育者養成教育学会</span>
+        <span class="affiliation-tag">日本子ども学会</span>
+        <span class="affiliation-tag">国際幼児教育学会</span>
+        <span class="affiliation-tag">PECERA</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Themes -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">主な研究テーマ</h2>
+      <p style="font-size:0.95rem; margin-bottom:20px; color:var(--text-light);">乳幼児教育の独自性と重要性の可視化と発信に関する研究</p>
+
+      <div class="theme-card">
+        <span class="num">1</span>
+        <p>公的機関による乳幼児教育に関する情報発信の実態の国際比較研究</p>
+      </div>
+      <div class="theme-card">
+        <span class="num">2</span>
+        <p>諸外国における乳幼児教育の内実の可視化に関する議論の検討</p>
+      </div>
+      <div class="theme-card">
+        <span class="num">3</span>
+        <p>情報発信を通じた家庭との連携を進める上での保育者養成教育の在り方に関する研究</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Research Detail -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">こんな研究をしています</h2>
+      <div class="research-body">
+        <p>乳幼児教育の独自性と保育者の専門性の可視化と発信を通じて理解推進を図り、子どもの権利保障を進めることに関心があります。</p>
+
+        <div class="highlight-box">
+          <p>「乳幼児教育の独自性と重要性が広く認識されることで、全ての乳幼児に発達に適した保育経験が保障されること」と「遊びを通した総合的な教育を通じて乳幼児の育ちと学びを支える保育者の専門性が広く認識されることで、保育者がやりがいを感じ、誇りをもって働くこと」に関心があります。</p>
+        </div>
+
+        <p>全ての乳幼児に家庭や園、地域における発達に適した経験が保障されるよう、公的機関が公共的かつ中立的な立場から乳幼児期の発達の特徴やそれに適した教育方法の内実について積極的に情報を発信して理解推進を図る必要があると考えます。</p>
+
+        <p>しかし、これまでの研究結果から、国内の国及び都道府県レベルの公的機関による情報発信が十分に行われているとは言い難いことが明らかになりました。特に、情報へのアクセスや情報の取捨選択がしにくく、情報内容が読み手にとって分かりにくいことが課題として挙げられます。</p>
+
+        <p>そこで、国内の公的機関による情報発信を進めるために、家庭への情報発信に積極的に取り組んでいる諸外国の事例を検討し、国内の状況と比較することで、具体的な方策を提案したいと考えています。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Message -->
+  <section>
+    <div class="container">
+      <h2 class="section-title">受験生・在学生にひとこと</h2>
+      <div class="message-box">
+        <p>保育者の仕事の醍醐味は、目の前の子どもの姿をもとに遊びや活動を計画し、日々の遊びや生活を通して子どもの育ちと学びを支える裁量の大きさであると考えます。ここでは、保護者や地域、より広く社会に対して、遊びと活動の内実やその中で育まれる子どもの育ちと学び、自身の子ども理解、援助の具体とその意図を伝えることが求められます。</p>
+        <br>
+        <p>自身の思いや考えを自覚して言語化し、他者に理解してもらえるように伝えることはとても難しいことです。乳幼児期の発達や教育の独自性や重要性がより広く社会に認識され、一人ひとりの子どもによりよい保育経験が保障されるよう、その難しさと共に向き合い、「発信する側」として共に学ぶことを楽しみにしています。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>子ども学科 研究紹介 &mdash; 清山 莉奈</p>
+  </footer>
+
+</body>
+</html>
