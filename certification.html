@@ -999,6 +999,7 @@ function saveRanking(entry) {
 
   fetch(GAS_URL, {
     method: 'POST',
+    mode: 'no-cors',
     headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(entry)
   }).catch(function(err) {
