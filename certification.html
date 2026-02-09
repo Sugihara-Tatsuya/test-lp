@@ -53,8 +53,9 @@
     /* Sidebar */
     .sidebar {
       width: 240px;
-      background: var(--slate-900);
-      color: var(--white);
+      background: var(--white);
+      color: var(--slate-800);
+      border-right: 1px solid var(--slate-200);
       position: fixed;
       top: 0; left: 0; bottom: 0;
       display: flex;
@@ -64,7 +65,7 @@
     }
     .sidebar-header {
       padding: 24px 20px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
+      border-bottom: 1px solid var(--slate-200);
     }
     .sidebar-logo {
       font-size: 1.05rem;
@@ -100,7 +101,7 @@
       gap: 10px;
       padding: 10px 20px;
       font-size: 0.85rem;
-      color: var(--slate-300);
+      color: var(--slate-500);
       cursor: pointer;
       transition: background 0.15s, color 0.15s;
       border: none;
@@ -109,8 +110,8 @@
       text-align: left;
       font-family: inherit;
     }
-    .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--white); }
-    .nav-item.active { background: rgba(249,115,22,0.15); color: var(--orange-400); }
+    .nav-item:hover { background: var(--slate-50); color: var(--slate-800); }
+    .nav-item.active { background: var(--orange-50); color: var(--orange-600); }
     .nav-item .nav-icon {
       width: 20px; height: 20px;
       display: flex; align-items: center; justify-content: center;
@@ -128,9 +129,9 @@
     }
     .sidebar-footer {
       padding: 16px 20px;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid var(--slate-200);
       font-size: 0.72rem;
-      color: var(--slate-500);
+      color: var(--slate-400);
     }
 
     /* Mobile sidebar toggle */
@@ -139,16 +140,16 @@
       position: fixed;
       top: 12px; left: 12px;
       z-index: 200;
-      background: var(--slate-900);
-      color: var(--white);
-      border: none;
+      background: var(--white);
+      color: var(--slate-700);
+      border: 1px solid var(--slate-200);
       border-radius: 8px;
       width: 40px; height: 40px;
       font-size: 1.2rem;
       cursor: pointer;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
     .sidebar-overlay {
       display: none;
@@ -583,10 +584,10 @@
       <nav class="sidebar-nav">
         <div class="sidebar-label">Menu</div>
         <button class="nav-item active" id="nav-start" onclick="navTo('view-start')">
-          <span class="nav-icon">&#9776;</span>ダッシュボード
+          <span class="nav-icon">&#127968;</span>トップページ
         </button>
         <button class="nav-item" id="nav-register" onclick="navTo('view-register')">
-          <span class="nav-icon">&#9998;</span>受験登録
+          <span class="nav-icon">&#128100;</span>ユーザー名登録
         </button>
         <button class="nav-item" id="nav-level" onclick="navTo('view-level')">
           <span class="nav-icon">&#9881;</span>レベル選択
@@ -613,7 +614,7 @@
 
       <!-- Topbar -->
       <header class="topbar">
-        <div class="topbar-title" id="topbar-title">ダッシュボード</div>
+        <div class="topbar-title" id="topbar-title">トップページ</div>
         <div class="topbar-user" id="topbar-user">
           <span id="topbar-username" style="display:none;"></span>
         </div>
@@ -622,33 +623,18 @@
       <!-- Content -->
       <div class="content">
 
-        <!-- Start / Dashboard -->
+        <!-- Start / Top Page -->
         <div id="view-start" class="view active">
-          <div class="page-header">
-            <h2>クロスオーダー検定</h2>
-            <p>クロスオーダー給食の操作マニュアルに基づいた知識検定です。</p>
-          </div>
-          <div class="start-grid">
-            <div class="stat-card">
-              <div class="stat-number">3</div>
-              <div class="stat-label">難易度レベル</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">10</div>
-              <div class="stat-label">問 / レベル</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-number">7</div>
-              <div class="stat-label">問以上で合格</div>
-            </div>
-          </div>
-          <div class="card">
-            <p style="font-size:0.88rem; color:var(--slate-600); margin-bottom:16px; line-height:1.8;">
-              取引先管理、注文管理、部門設定、検収表、CSV注文など、クロスオーダー給食の主要機能に関する知識をテストします。合格すると表彰状をダウンロードできます。
+          <div style="max-width:480px; margin:60px auto 0; text-align:center;">
+            <h2 style="font-size:1.4rem; font-weight:700; color:var(--slate-800); margin-bottom:12px;">クロスオーダー検定</h2>
+            <p style="font-size:0.9rem; color:var(--slate-500); line-height:1.8; margin-bottom:36px;">
+              クロスオーダー給食の操作マニュアルに基づいた知識検定です。<br>
+              初級・中級・上級の3レベル、各10問から出題されます。<br>
+              7問以上の正解で合格となり、表彰状をダウンロードできます。
             </p>
-            <div class="start-actions">
-              <button class="btn" onclick="navTo('view-register')">受験をはじめる</button>
-              <button class="btn btn-ghost" onclick="showRanking()">ランキングを見る</button>
+            <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
+              <button class="btn" style="min-width:240px;" onclick="navTo('view-register')">検定をはじめる</button>
+              <button class="btn btn-ghost" style="min-width:240px;" onclick="showRanking()">ランキングを見る</button>
             </div>
           </div>
         </div>
@@ -656,7 +642,7 @@
         <!-- Register -->
         <div id="view-register" class="view">
           <div class="page-header">
-            <h2>受験登録</h2>
+            <h2>ユーザー名登録</h2>
             <p>ランキングと表彰状に表示される名前を入力してください。</p>
           </div>
           <div class="card" style="max-width:440px;">
@@ -739,7 +725,7 @@
             <button class="btn btn-block" id="btn-certificate" style="display:none;" onclick="downloadCertificate()">&#128196; 表彰状をダウンロード</button>
             <button class="btn btn-ghost btn-block" onclick="showRanking()">ランキングを見る</button>
             <button class="btn btn-ghost btn-block" onclick="navTo('view-level')">もう一度挑戦する</button>
-            <button class="btn btn-ghost btn-block" onclick="navTo('view-start')">ダッシュボードへ戻る</button>
+            <button class="btn btn-ghost btn-block" onclick="navTo('view-start')">トップページへ戻る</button>
           </div>
         </div>
 
@@ -760,7 +746,7 @@
             <div id="ranking-content" style="padding:0 0 4px;"></div>
           </div>
           <div class="ranking-footer">
-            <button class="btn btn-ghost btn-sm" onclick="navTo('view-start')">ダッシュボードへ戻る</button>
+            <button class="btn btn-ghost btn-sm" onclick="navTo('view-start')">トップページへ戻る</button>
             <button class="btn btn-danger btn-sm" onclick="clearRanking()">ランキングをクリア</button>
           </div>
         </div>
@@ -837,8 +823,8 @@ const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
 // View & Nav
 // ============================================================
 const VIEW_TITLES = {
-  'view-start': '\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9',
-  'view-register': '\u53d7\u9a13\u767b\u9332',
+  'view-start': 'トップページ',
+  'view-register': 'ユーザー名登録',
   'view-level': '\u30ec\u30d9\u30eb\u9078\u629e',
   'view-quiz': '\u691c\u5b9a\u8a66\u9a13',
   'view-results': '\u7d50\u679c\u767a\u8868',
