@@ -824,6 +824,11 @@ const QUIZ_DATA = {
 // ============================================================
 // App State
 // ============================================================
+// ============================================================
+// GAS API URL（デプロイ後のURLに差し替えてください）
+// ============================================================
+const GAS_URL = '';
+
 let currentPlayer = "";
 let quizState = { level: null, questions: [], currentIndex: 0, answers: [], score: 0 };
 const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
@@ -971,16 +976,56 @@ function showResults() {
 }
 
 // ============================================================
-// Ranking
+// Ranking (GAS API + localStorage fallback)
 // ============================================================
-function getRanking() { try { return JSON.parse(localStorage.getItem('crossorder_ranking')) || []; } catch(e) { return []; } }
+function isGasConfigured() { return GAS_URL && GAS_URL.length > 0; }
 
-function saveRanking(entry) {
-  var ranking = getRanking();
+// --- localStorage fallback ---
+function getLocalRanking() { try { return JSON.parse(localStorage.getItem('crossorder_ranking')) || []; } catch(e) { return []; } }
+function saveLocalRanking(entry) {
+  var ranking = getLocalRanking();
   ranking.push(entry);
   ranking.sort(function(a, b) { if (b.score !== a.score) return b.score - a.score; return new Date(a.date) - new Date(b.date); });
   if (ranking.length > 100) ranking.length = 100;
   localStorage.setItem('crossorder_ranking', JSON.stringify(ranking));
+}
+
+// --- GAS API ---
+function saveRanking(entry) {
+  // 常にlocalStorageにも保存（フォールバック用）
+  saveLocalRanking(entry);
+
+  if (!isGasConfigured()) return;
+
+  fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(entry)
+  }).catch(function(err) {
+    console.warn('ランキング送信エラー:', err);
+  });
+}
+
+function fetchRanking(level, callback) {
+  if (!isGasConfigured()) {
+    var local = getLocalRanking().filter(function(r) { return r.level === level; });
+    callback(local);
+    return;
+  }
+
+  var container = document.getElementById('ranking-content');
+  container.innerHTML = '<div class="ranking-empty" style="text-align:center;padding:24px;">読み込み中...</div>';
+
+  fetch(GAS_URL + '?level=' + encodeURIComponent(level))
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      callback(data.ranking || []);
+    })
+    .catch(function(err) {
+      console.warn('ランキング取得エラー（ローカルに切替）:', err);
+      var local = getLocalRanking().filter(function(r) { return r.level === level; });
+      callback(local);
+    });
 }
 
 function showRanking() {
@@ -998,27 +1043,29 @@ function switchRankingTab(level, tabEl) {
 }
 
 function renderRanking(level) {
-  var ranking = getRanking().filter(function(r) { return r.level === level; });
-  var container = document.getElementById('ranking-content');
-  if (ranking.length === 0) { container.innerHTML = '<div class="ranking-empty">\u307e\u3060\u8a18\u9332\u304c\u3042\u308a\u307e\u305b\u3093\u3002</div>'; return; }
-  var html = '<table class="ranking-table"><thead><tr><th>\u9806\u4f4d</th><th>\u540d\u524d</th><th>\u30b9\u30b3\u30a2</th><th>\u7d50\u679c</th><th>\u65e5\u4ed8</th></tr></thead><tbody>';
-  ranking.forEach(function(r, i) {
-    var rank = i + 1;
-    var medalClass = '', medalIcon = rank;
-    if (rank === 1) { medalClass = 'medal medal-gold'; medalIcon = '\uD83E\uDD47'; }
-    else if (rank === 2) { medalClass = 'medal medal-silver'; medalIcon = '\uD83E\uDD48'; }
-    else if (rank === 3) { medalClass = 'medal medal-bronze'; medalIcon = '\uD83E\uDD49'; }
-    var date = new Date(r.date);
-    var dateStr = date.getFullYear() + '/' + String(date.getMonth() + 1).padStart(2, '0') + '/' + String(date.getDate()).padStart(2, '0');
-    var statusBadge = r.passed ? '<span class="badge badge-green">\u5408\u683c</span>' : '<span class="badge badge-red">\u4e0d\u5408\u683c</span>';
-    html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
+  fetchRanking(level, function(ranking) {
+    var container = document.getElementById('ranking-content');
+    if (ranking.length === 0) { container.innerHTML = '<div class="ranking-empty">まだ記録がありません。</div>'; return; }
+    var html = '<table class="ranking-table"><thead><tr><th>順位</th><th>名前</th><th>スコア</th><th>結果</th><th>日付</th></tr></thead><tbody>';
+    ranking.forEach(function(r, i) {
+      var rank = i + 1;
+      var medalClass = '', medalIcon = rank;
+      if (rank === 1) { medalClass = 'medal medal-gold'; medalIcon = '\uD83E\uDD47'; }
+      else if (rank === 2) { medalClass = 'medal medal-silver'; medalIcon = '\uD83E\uDD48'; }
+      else if (rank === 3) { medalClass = 'medal medal-bronze'; medalIcon = '\uD83E\uDD49'; }
+      var date = new Date(r.date);
+      var dateStr = date.getFullYear() + '/' + String(date.getMonth() + 1).padStart(2, '0') + '/' + String(date.getDate()).padStart(2, '0');
+      var passed = r.passed !== undefined ? r.passed : (r.score >= 7);
+      var statusBadge = passed ? '<span class="badge badge-green">合格</span>' : '<span class="badge badge-red">不合格</span>';
+      html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
   });
-  html += '</tbody></table>';
-  container.innerHTML = html;
 }
 
 function clearRanking() {
-  if (confirm('\u30e9\u30f3\u30ad\u30f3\u30b0\u30c7\u30fc\u30bf\u3092\u3059\u3079\u3066\u524a\u9664\u3057\u307e\u3059\u304b\uff1f')) {
+  if (confirm('ランキングデータをすべて削除しますか？（ローカルデータのみ削除されます）')) {
     localStorage.removeItem('crossorder_ranking');
     renderRanking('beginner');
     var tabs = document.querySelectorAll('.ranking-tab');
