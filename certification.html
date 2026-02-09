@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クロスオーダー検定</title>
+  <style>
+    :root {
+      --orange-50: #fff7ed;
+      --orange-100: #ffedd5;
+      --orange-200: #fed7aa;
+      --orange-300: #fdba74;
+      --orange-400: #fb923c;
+      --orange-500: #f97316;
+      --orange-600: #ea580c;
+      --orange-700: #c2410c;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-300: #cbd5e1;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-600: #475569;
+      --slate-700: #334155;
+      --slate-800: #1e293b;
+      --slate-900: #0f172a;
+      --white: #ffffff;
+      --green-500: #22c55e;
+      --green-600: #16a34a;
+      --green-50: #f0fdf4;
+      --red-500: #ef4444;
+      --red-50: #fef2f2;
+      --red-600: #dc2626;
+      --amber-500: #f59e0b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", -apple-system, sans-serif;
+      color: var(--slate-800);
+      background: var(--slate-50);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== Layout: Sidebar + Main ===== */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--slate-900);
+      color: var(--white);
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+    .sidebar-header {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-logo {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .sidebar-logo .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--orange-500);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem; font-weight: 800;
+    }
+    .sidebar-nav {
+      flex: 1;
+      padding: 16px 0;
+      overflow-y: auto;
+    }
+    .sidebar-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--slate-400);
+      padding: 8px 20px 6px;
+      font-weight: 600;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      font-size: 0.85rem;
+      color: var(--slate-300);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      font-family: inherit;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--white); }
+    .nav-item.active { background: rgba(249,115,22,0.15); color: var(--orange-400); }
+    .nav-item .nav-icon {
+      width: 20px; height: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .nav-badge {
+      margin-left: auto;
+      background: var(--orange-500);
+      color: var(--white);
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 10px;
+    }
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.72rem;
+      color: var(--slate-500);
+    }
+
+    /* Mobile sidebar toggle */
+    .sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 12px; left: 12px;
+      z-index: 200;
+      background: var(--slate-900);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      width: 40px; height: 40px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 90;
+    }
+
+    /* Main content */
+    .main {
+      flex: 1;
+      margin-left: 240px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top bar */
+    .topbar {
+      background: var(--white);
+      border-bottom: 1px solid var(--slate-200);
+      padding: 0 32px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .topbar-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--slate-800);
+    }
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--slate-500);
+    }
+    .topbar-avatar {
+      width: 28px; height: 28px;
+      background: var(--orange-100);
+      color: var(--orange-600);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700;
+    }
+
+    /* Content area */
+    .content {
+      flex: 1;
+      padding: 28px 32px 48px;
+    }
+
+    /* Views */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Page header */
+    .page-header {
+      margin-bottom: 24px;
+    }
+    .page-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--slate-800);
+      margin-bottom: 4px;
+    }
+    .page-header p {
+      font-size: 0.82rem;
+      color: var(--slate-500);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 24px;
+    }
+    .card + .card { margin-top: 16px; }
+
+    /* Badge */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 10px;
+      border-radius: 12px;
+      gap: 4px;
+    }
+    .badge-orange { background: var(--orange-100); color: var(--orange-700); }
+    .badge-green { background: var(--green-50); color: var(--green-600); }
+    .badge-slate { background: var(--slate-100); color: var(--slate-600); }
+    .badge-red { background: var(--red-50); color: var(--red-600); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: var(--orange-500);
+      color: var(--white);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      text-decoration: none;
+    }
+    .btn:hover { background: var(--orange-600); box-shadow: 0 1px 3px rgba(249,115,22,0.3); }
+    .btn:active { transform: scale(0.98); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--slate-600);
+      border: 1px solid var(--slate-200);
+    }
+    .btn-ghost:hover { background: var(--slate-50); box-shadow: none; border-color: var(--slate-300); }
+    .btn-sm { padding: 7px 16px; font-size: 0.8rem; }
+    .btn-danger { background: var(--red-500); }
+    .btn-danger:hover { background: var(--red-600); box-shadow: 0 1px 3px rgba(239,68,68,0.3); }
+    .btn-block { width: 100%; }
+
+    /* Input */
+    .input-field {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      background: var(--white);
+      color: var(--slate-800);
+    }
+    .input-field:focus { border-color: var(--orange-400); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
+    .input-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--slate-600);
+      margin-bottom: 6px;
+    }
+
+    /* ===== Start View ===== */
+    .start-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 20px;
+      text-align: center;
+    }
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--orange-500);
+      line-height: 1.1;
+    }
+    .stat-label {
+      font-size: 0.78rem;
+      color: var(--slate-500);
+      margin-top: 4px;
+    }
+    .start-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ===== Level cards ===== */
+    .level-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .level-card {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 24px 20px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+      text-align: center;
+    }
+    .level-card:hover { border-color: var(--orange-300); box-shadow: 0 4px 12px rgba(249,115,22,0.1); transform: translateY(-2px); }
+    .level-icon {
+      width: 48px; height: 48px;
+      margin: 0 auto 12px;
+      background: var(--orange-50);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 800; color: var(--orange-500);
+    }
+    .level-card h3 { font-size: 1rem; font-weight: 700; color: var(--slate-800); margin-bottom: 6px; }
+    .level-card p { font-size: 0.78rem; color: var(--slate-500); margin-bottom: 4px; line-height: 1.5; }
+    .level-meta {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* ===== Quiz ===== */
+    .progress-bar {
+      width: 100%;
+      height: 4px;
+      background: var(--slate-100);
+      border-radius: 2px;
+      margin-bottom: 6px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--orange-500);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+    .quiz-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .quiz-counter { font-size: 0.8rem; color: var(--slate-500); font-weight: 500; }
+    .quiz-question {
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 24px;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+      line-height: 1.8;
+      color: var(--slate-800);
+    }
+    .quiz-choices { display: flex; flex-direction: column; gap: 8px; }
+    .choice-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      font-family: inherit;
+      color: var(--slate-700);
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+      line-height: 1.5;
+    }
+    .choice-btn:hover:not(:disabled) { border-color: var(--orange-300); background: var(--orange-50); }
+    .choice-btn:disabled { cursor: default; opacity: 0.85; }
+    .choice-btn .choice-marker {
+      flex-shrink: 0;
+      width: 24px; height: 24px;
+      border: 2px solid var(--slate-300);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; color: var(--slate-400);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .choice-btn:hover:not(:disabled) .choice-marker { border-color: var(--orange-400); color: var(--orange-500); }
+    .choice-btn.correct { border-color: var(--green-500); background: var(--green-50); }
+    .choice-btn.correct .choice-marker { border-color: var(--green-500); background: var(--green-500); color: var(--white); }
+    .choice-btn.incorrect { border-color: var(--red-500); background: var(--red-50); }
+    .choice-btn.incorrect .choice-marker { border-color: var(--red-500); background: var(--red-500); color: var(--white); }
+    .quiz-explanation {
+      background: var(--orange-50);
+      border-left: 3px solid var(--orange-400);
+      border-radius: 0 8px 8px 0;
+      padding: 14px 18px;
+      margin-top: 14px;
+      font-size: 0.84rem;
+      line-height: 1.7;
+      color: var(--slate-700);
+    }
+    .quiz-next { text-align: right; margin-top: 16px; }
+
+    /* ===== Results ===== */
+    .result-card {
+      text-align: center;
+      background: var(--white);
+      border: 1px solid var(--slate-200);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      padding: 40px 28px 32px;
+      margin-bottom: 20px;
+    }
+    .result-score {
+      font-size: 3.2rem;
+      font-weight: 800;
+      color: var(--orange-500);
+      line-height: 1.1;
+    }
+    .result-score span { font-size: 1.3rem; color: var(--slate-400); font-weight: 500; }
+    .result-label { font-size: 0.82rem; color: var(--slate-500); margin-top: 4px; }
+    .result-badge-pass {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-50); color: var(--green-600);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 0.95rem; font-weight: 700;
+      margin-top: 16px;
+    }
+    .result-badge-fail {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--orange-50); color: var(--orange-600);
+      border: 1px solid rgba(249,115,22,0.2);
+      border-radius: 8px;
+      padding: 10px 24px;
+      font-size: 0.95rem; font-weight: 700;
+      margin-top: 16px;
+    }
+    .result-actions { display: flex; flex-direction: column; gap: 8px; max-width: 320px; margin: 0 auto; }
+
+    /* ===== Ranking ===== */
+    .ranking-tabs {
+      display: flex; gap: 0;
+      border-bottom: 1px solid var(--slate-200);
+      margin-bottom: 16px;
+    }
+    .ranking-tab {
+      padding: 8px 20px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      font-family: inherit;
+      background: none; border: none;
+      cursor: pointer;
+      color: var(--slate-400);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .ranking-tab:hover { color: var(--slate-600); }
+    .ranking-tab.active { color: var(--orange-500); border-bottom-color: var(--orange-500); font-weight: 600; }
+    .ranking-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.84rem;
+    }
+    .ranking-table th {
+      background: var(--slate-50);
+      color: var(--slate-500);
+      padding: 8px 14px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--slate-200);
+    }
+    .ranking-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--slate-100);
+      color: var(--slate-700);
+    }
+    .ranking-table tr:hover td { background: var(--slate-50); }
+    .medal { font-weight: 700; }
+    .medal-gold { color: #d97706; }
+    .medal-silver { color: #6b7280; }
+    .medal-bronze { color: #b45309; }
+    .ranking-empty {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--slate-400);
+      font-size: 0.88rem;
+    }
+    .ranking-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: translateX(0); }
+      .sidebar-toggle { display: flex; }
+      .sidebar-overlay.open { display: block; }
+      .main { margin-left: 0; }
+      .topbar { padding: 0 16px; padding-left: 56px; }
+      .content { padding: 20px 16px 40px; }
+      .start-grid { grid-template-columns: 1fr; }
+      .level-grid { grid-template-columns: 1fr; }
+      .start-actions { flex-direction: column; }
+      .result-actions { max-width: 100%; }
+    }
+    @media (min-width: 769px) {
+      .sidebar-toggle { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile sidebar toggle -->
+  <button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="logo-icon">XO</div>
+          <span>クロスオーダー検定</span>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-label">Menu</div>
+        <button class="nav-item active" id="nav-start" onclick="navTo('view-start')">
+          <span class="nav-icon">&#9776;</span>ダッシュボード
+        </button>
+        <button class="nav-item" id="nav-register" onclick="navTo('view-register')">
+          <span class="nav-icon">&#9998;</span>受験登録
+        </button>
+        <button class="nav-item" id="nav-level" onclick="navTo('view-level')">
+          <span class="nav-icon">&#9881;</span>レベル選択
+          <span class="nav-badge">3</span>
+        </button>
+        <button class="nav-item" id="nav-quiz" onclick="navTo('view-quiz')">
+          <span class="nav-icon">&#10067;</span>検定試験
+        </button>
+        <button class="nav-item" id="nav-results" onclick="navTo('view-results')">
+          <span class="nav-icon">&#9733;</span>結果
+        </button>
+        <div class="sidebar-label" style="margin-top:12px;">Data</div>
+        <button class="nav-item" id="nav-ranking" onclick="showRanking()">
+          <span class="nav-icon">&#9819;</span>ランキング
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        &copy; クロスオーダー給食
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main">
+
+      <!-- Topbar -->
+      <header class="topbar">
+        <div class="topbar-title" id="topbar-title">ダッシュボード</div>
+        <div class="topbar-user" id="topbar-user">
+          <span id="topbar-username" style="display:none;"></span>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <div class="content">
+
+        <!-- Start / Dashboard -->
+        <div id="view-start" class="view active">
+          <div class="page-header">
+            <h2>クロスオーダー検定</h2>
+            <p>クロスオーダー給食の操作マニュアルに基づいた知識検定です。</p>
+          </div>
+          <div class="start-grid">
+            <div class="stat-card">
+              <div class="stat-number">3</div>
+              <div class="stat-label">難易度レベル</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">10</div>
+              <div class="stat-label">問 / レベル</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-number">7</div>
+              <div class="stat-label">問以上で合格</div>
+            </div>
+          </div>
+          <div class="card">
+            <p style="font-size:0.88rem; color:var(--slate-600); margin-bottom:16px; line-height:1.8;">
+              取引先管理、注文管理、部門設定、検収表、CSV注文など、クロスオーダー給食の主要機能に関する知識をテストします。合格すると表彰状をダウンロードできます。
+            </p>
+            <div class="start-actions">
+              <button class="btn" onclick="navTo('view-register')">受験をはじめる</button>
+              <button class="btn btn-ghost" onclick="showRanking()">ランキングを見る</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Register -->
+        <div id="view-register" class="view">
+          <div class="page-header">
+            <h2>受験登録</h2>
+            <p>ランキングと表彰状に表示される名前を入力してください。</p>
+          </div>
+          <div class="card" style="max-width:440px;">
+            <label class="input-label" for="player-name">お名前</label>
+            <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20">
+            <p id="name-error" style="color:var(--red-500); font-size:0.78rem; margin-top:6px; display:none;">名前を入力してください。</p>
+            <div style="margin-top:20px;">
+              <button class="btn" onclick="registerName()">次へ進む</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level Select -->
+        <div id="view-level" class="view">
+          <div class="page-header">
+            <h2>レベル選択</h2>
+            <p id="player-greeting">挑戦するレベルを選んでください。</p>
+          </div>
+          <div class="level-grid">
+            <div class="level-card" onclick="startQuiz('beginner')">
+              <div class="level-icon">初</div>
+              <h3>初級</h3>
+              <p>取引先一覧・招待・注文確認など基本操作の問題</p>
+              <div class="level-meta">
+                <span class="badge badge-orange">10問</span>
+                <span class="badge badge-slate">7問で合格</span>
+              </div>
+            </div>
+            <div class="level-card" onclick="startQuiz('intermediate')">
+              <div class="level-icon">中</div>
+              <h3>中級</h3>
+              <p>注文管理・部門設定・検収表など実務操作の問題</p>
+              <div class="level-meta">
+                <span class="badge badge-orange">10問</span>
+                <span class="badge badge-slate">7問で合格</span>
+              </div>
+            </div>
+            <div class="level-card" onclick="startQuiz('advanced')">
+              <div class="level-icon">上</div>
+              <h3>上級</h3>
+              <p>CSV注文・突合・高度な設定など応用的な問題</p>
+              <div class="level-meta">
+                <span class="badge badge-orange">10問</span>
+                <span class="badge badge-slate">7問で合格</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiz -->
+        <div id="view-quiz" class="view">
+          <div class="page-header">
+            <h2 id="quiz-level-title">検定試験</h2>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+          <div class="quiz-meta">
+            <span class="quiz-counter" id="quiz-counter"></span>
+            <span id="quiz-level-badge"></span>
+          </div>
+          <div class="quiz-question" id="quiz-question"></div>
+          <div class="quiz-choices" id="quiz-choices"></div>
+          <div class="quiz-explanation" id="quiz-explanation" style="display:none;"></div>
+          <div class="quiz-next" id="quiz-next" style="display:none;">
+            <button class="btn btn-sm" onclick="nextQuestion()">次の問題へ &rarr;</button>
+          </div>
+        </div>
+
+        <!-- Results -->
+        <div id="view-results" class="view">
+          <div class="page-header">
+            <h2>結果発表</h2>
+          </div>
+          <div class="result-card">
+            <p class="result-label" id="result-level-label"></p>
+            <div class="result-score" id="result-score"></div>
+            <p class="result-label">正解</p>
+            <div id="result-badge"></div>
+          </div>
+          <div class="result-actions">
+            <button class="btn btn-block" id="btn-certificate" style="display:none;" onclick="downloadCertificate()">&#128196; 表彰状をダウンロード</button>
+            <button class="btn btn-ghost btn-block" onclick="showRanking()">ランキングを見る</button>
+            <button class="btn btn-ghost btn-block" onclick="navTo('view-level')">もう一度挑戦する</button>
+            <button class="btn btn-ghost btn-block" onclick="navTo('view-start')">ダッシュボードへ戻る</button>
+          </div>
+        </div>
+
+        <!-- Ranking -->
+        <div id="view-ranking" class="view">
+          <div class="page-header">
+            <h2>ランキング</h2>
+            <p>各レベルのスコアランキングです。</p>
+          </div>
+          <div class="card" style="padding:0; overflow:hidden;">
+            <div style="padding:16px 20px 0;">
+              <div class="ranking-tabs">
+                <button class="ranking-tab active" onclick="switchRankingTab('beginner', this)">初級</button>
+                <button class="ranking-tab" onclick="switchRankingTab('intermediate', this)">中級</button>
+                <button class="ranking-tab" onclick="switchRankingTab('advanced', this)">上級</button>
+              </div>
+            </div>
+            <div id="ranking-content" style="padding:0 0 4px;"></div>
+          </div>
+          <div class="ranking-footer">
+            <button class="btn btn-ghost btn-sm" onclick="navTo('view-start')">ダッシュボードへ戻る</button>
+            <button class="btn btn-danger btn-sm" onclick="clearRanking()">ランキングをクリア</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// Quiz Data
+// ============================================================
+const QUIZ_DATA = {
+  beginner: {
+    label: "初級",
+    questions: [
+      { question: "取引先を招待する際、発行される招待URLの有効期限はどれくらいですか？", choices: ["24時間", "48時間", "72時間", "1週間"], correct: 1, explanation: "招待URLの有効期限は48時間です。期限が過ぎた場合は再発行が必要です。" },
+      { question: "「給食一括注文」の突合画面で、商品名の背景が「黄色」になっている場合、どのような状態を表していますか？", choices: ["在庫が少なくなっている商品", "過去に注文履歴がある商品", "突合が完了していない商品", "特売対象の商品"], correct: 2, explanation: "商品名の背景が黄色の場合、突合ができていない商品です。商品検索で突合が必要です。" },
+      { question: "注文一覧画面で、注文CSVの出力を行った場合に表示されるラベルはどれですか？", choices: ["完了済", "確認済", "発送済", "出力済"], correct: 3, explanation: "新着注文一覧から注文CSVの出力を行った場合、「出力済」ラベルが表示されます。" },
+      { question: "取引先一覧ページで、特定の取引先の情報を編集したり、招待を送ったりする場合にクリックする箇所はどこですか？", choices: ["利用状況", "アイコン", "詳細", "給食注文"], correct: 2, explanation: "「詳細」をクリックすると、取引先情報の編集や招待の送信ができます。" },
+      { question: "注文管理で商品を後から追加する場合、デフォルトで空欄になっており入力が必要な項目はどれですか？", choices: ["商品コードと商品名", "単位と単価", "使用日と数量", "部門と担当者"], correct: 2, explanation: "商品を追加した際、「使用日」と「数量」は空欄になっているため入力が必要です。" },
+      { question: "検収表をダウンロードできる画面として正しい組み合わせはどれですか？", choices: ["「新着」画面と「履歴」画面の両方", "「新着」画面のみ", "「履歴」画面のみ", "「設定」画面のみ"], correct: 0, explanation: "検収表は「新着」画面と「履歴」画面の両方からダウンロードできます。" },
+      { question: "部門設定において、一度登録すると管理画面から変更できない項目はどれですか？", choices: ["担当者名", "施設部門名", "表示順序", "部門コード"], correct: 1, explanation: "「施設部門名」は一度登録すると管理画面から変更できません。" },
+      { question: "納品日と使用日の初期設定において、デフォルト（初期値）では納品日はいつに設定されていますか？", choices: ["使用日の当日", "使用日の1日前", "使用日の2日前", "使用日の3日前"], correct: 1, explanation: "デフォルトでは納品日は「使用日の1日前」に設定されています。" },
+      { question: "代理CSV注文機能でアップロードできるデータとして、正しいものはどれですか？", choices: ["PDF形式の注文書", "画像データ（JPG/PNG）", "献立ソフトから出力されたCSVデータ", "エクセル（.xlsx）形式のままのデータ"], correct: 2, explanation: "献立ソフトから出力されたCSVデータや自作したCSVデータをアップロードできます。" },
+      { question: "検収表のダウンロードが可能な注文の条件として正しいものはどれですか？", choices: ["すべての注文", "「給食注文」ラベルが付与されている注文", "代理注文のみ", "確定から24時間経過した注文"], correct: 1, explanation: "「給食注文」ラベルが付与されている注文のみ検収表のダウンロードが可能です。" }
+    ]
+  },
+  intermediate: {
+    label: "中級",
+    questions: [
+      { question: "すでに登録済みのメールアドレスに対して招待を送った場合、どのような挙動になりますか？", choices: ["エラーが表示され、送信できない", "新しいアカウントが強制的に作成される", "登録済であることをお知らせするメールが送付される", "パスワードのリセットURLが送付される"], correct: 2, explanation: "すでに登録済みのメールアドレスに招待した場合、登録済であることをお知らせするメールが送付されます。" },
+      { question: "注文管理画面で「商品の追加」を行う際、変更ができない項目はどれですか？", choices: ["使用日", "数量", "商品コード・商品名・単位", "部門ごとの内訳"], correct: 2, explanation: "「商品コード」「商品名」「単位」は変更できません。" },
+      { question: "給食一括注文の突合画面で検索を行う際、検索対象となる商品の範囲はどこまでですか？", choices: ["全商品マスタ", "「取引先商品」に紐づく商品のみ", "過去1年以内に注文された商品のみ", "在庫がある商品のみ"], correct: 1, explanation: "突合画面の検索では「取引先商品」に紐づく商品のみが表示されます。" },
+      { question: "代理CSV注文のアップロード画面で、「注文する」ボタンを表示させるためにクリックが必要なボタンはどれですか？", choices: ["保存", "確定", "更新", "マッピング"], correct: 2, explanation: "「更新」をクリックすると「注文する」ボタンが表示されます。" },
+      { question: "部門ごとの数量変更を行う際、満たさなければならない条件はどれですか？", choices: ["部門ごとの合計が、商品の総数量と一致すること", "部門ごとの数量がすべて均等であること", "メインの部門の数量が一番多いこと", "数量変更の理由を入力すること"], correct: 0, explanation: "部門ごとの合計が商品の総数量と一致するように設定する必要があります。" },
+      { question: "給食一括注文の突合で、商品名が最初から「白色（突合済）」で表示される条件として正しいものはどれですか？", choices: ["在庫が十分に確保されている場合", "過去に同取引先にて「商品名＋単位」で突合した履歴がある場合", "商品マスタに登録されてから1週間以内の新商品である場合", "AIが自動的に類似商品を判別した場合"], correct: 1, explanation: "過去に同取引先にて「商品名＋単位」で突合した履歴がある場合、または事前に同取引先の「商品名＋単位」で商品登録がされている場合に白色で表示されます。" },
+      { question: "「履歴」画面から検収表をダウンロードする際、どの項目を選択してダウンロードへ進みますか？", choices: ["注文ID", "納品日", "確定日時（確定時間）", "取引先名"], correct: 2, explanation: "履歴画面では「確定日時（確定時間）」を選択して検収表のダウンロードへ進みます。" },
+      { question: "取引先ごとの「給食一括注文の突合スキップ設定」を変更した場合、全体設定（卸設定）との優先順位はどうなりますか？", choices: ["全体設定が常に優先される", "取引先ごとの設定が優先される", "「スキップする」設定になっている方が優先される", "後から設定を変更した方が優先される"], correct: 1, explanation: "卸設定よりも取引先ごとの設定が優先されます。" },
+      { question: "部門設定画面で「完了」ボタンを押した際の挙動と注意点として正しい記述はどれですか？", choices: ["仮保存され、後で承認作業が必要になる", "完了を押したタイミングで保存され、施設部門名は以降変更できない", "24時間は修正可能だが、それ以降はロックされる", "卸側では保存されず、施設側の承認待ちになる"], correct: 1, explanation: "「完了」を押したタイミングで保存されます。施設部門名は以降変更できないため注意が必要です。" },
+      { question: "注文一覧で「給食注文変更」というラベルが表示されるのは、どのような時ですか？", choices: ["給食注文以外の注文が混ざった時", "1度以上給食の注文が変更された時", "納品日が変更された時", "金額が変更された時"], correct: 1, explanation: "「給食注文変更」ラベルは、1度以上給食の注文が変更された場合に表示されます。" }
+    ]
+  },
+  advanced: {
+    label: "上級",
+    questions: [
+      { question: "納品日の初期設定を「使用日の3日前」に変更した場合、発注画面にはどのように表示されますか？", choices: ["使用日の3日前がデフォルトの納品日として表示される", "常に使用日と同日が表示され、アラートが出る", "3日前より後の日付が選択できなくなる", "発注画面には影響せず、請求書の日付のみ変わる"], correct: 0, explanation: "初期設定を変更すると、使用日の3日前がデフォルトの納品日として発注画面に表示されます。" },
+      { question: "代理CSV注文のアップロード画面で見られるステータスや機能の説明として誤っているものはどれですか？", choices: ["「エラーあり」…エラー詳細の確認ができる", "「削除する」…正常にアップロードできなかったデータを削除できる", "「更新」…CSV一括注文で入ってきた注文の内容を更新できる", "「編集」…CSVデータを画面上で直接書き換えることができる"], correct: 3, explanation: "画面上でCSVデータを直接書き換える「編集」機能はマニュアルに記載がありません。削除や更新が主な機能です。" },
+      { question: "給食一括注文の突合で、検索しても該当商品がヒットせず、「取引先商品登録」を行う必要があるケースはどれですか？", choices: ["商品名が黄色になっているすべてのケース", "商品名が白色だが、数量が合わないケース", "検索しても表示されず、マスタにはあるが取引先商品として紐づいていないケース", "過去に一度も注文されたことがない商品すべて"], correct: 2, explanation: "検索してもヒットしない場合、「取引先商品登録」から商品マスタより商品を検索し、商品登録を行います。" },
+      { question: "「突合スキップ」の設定において、卸設定（全体）が「スキップしない」、取引先設定が「スキップする」の場合、適用される挙動はどれですか？", choices: ["スキップしない", "スキップする", "エラーになる", "都度選択するポップアップが出る"], correct: 1, explanation: "取引先ごとの設定が卸設定より優先されるため、「スキップする」が適用されます。" },
+      { question: "注文管理画面で商品を編集・追加した際、数量を入力すると自動で数値が入る仕組みがありますが、これは何に基づいていますか？", choices: ["過去の平均注文数", "施設側で設定をしている割合", "在庫の最大数", "最低発注単位（ロット数）"], correct: 1, explanation: "数量を入力すると、施設側で設定をしている割合に基づいて部門ごとの数量が自動で入ります。" },
+      { question: "CSV代理注文機能で、取引先をマッピングした後にクリックするボタンの名称はどれですか？", choices: ["注文を確定する", "データを保存する", "代理注文データを作成する", "マッピングを完了する"], correct: 2, explanation: "取引先をマッピングした後、「代理注文データを作成する」をクリックします。" },
+      { question: "部門設定に関して、発注画面側に表示される部門名はどのようなルールで表示されますか？", choices: ["卸側で設定した管理コード順に表示される", "施設側が設定した部門名のみ表示される", "卸側と施設側の両方の名称が併記される", "自動的に「部門1」「部門2」と割り振られる"], correct: 1, explanation: "発注画面側に表示される部門名は、施設側が設定した部門名のみが表示されます。" },
+      { question: "一次保存機能について、給食一括注文の突合編集中に「一次保存」をクリックした場合の挙動として正しいものはどれですか？", choices: ["注文一覧に「一次保存」として表示される", "編集途中の状態が保存され、後で再開できる", "取引先に通知が飛び、確認待ちになる", "CSVデータが上書き保存される"], correct: 1, explanation: "編集途中の場合は「一次保存」をクリックすることで、編集途中の状態が保存され後で再開できます。" },
+      { question: "履歴画面から「部門詳細」を確認する手順として正しいものはどれですか？", choices: ["注文日をクリックして「詳細」タブを開く", "確定日時を選択し、「部門詳細を確認」をクリックする", "取引先名をクリックし、履歴タブから選択する", "履歴画面からは部門詳細は確認できない"], correct: 1, explanation: "確定日時を選択し、「部門詳細を確認」をクリックして部門詳細を確認します。" },
+      { question: "納品日の初期設定で、取引先ごとの設定画面を開いた際、デフォルト（変更前）の設定はどうなっていますか？", choices: ["常に「使用日の1日前」", "常に「使用日と同日」", "全体設定（発注画面設定）に準ずる設定", "ランダム（設定なし）"], correct: 2, explanation: "取引先ごとの設定のデフォルトは「発注画面設定に準ずる」、つまり全体設定に従う設定になっています。" }
+    ]
+  }
+};
+
+// ============================================================
+// App State
+// ============================================================
+let currentPlayer = "";
+let quizState = { level: null, questions: [], currentIndex: 0, answers: [], score: 0 };
+const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
+
+// ============================================================
+// View & Nav
+// ============================================================
+const VIEW_TITLES = {
+  'view-start': '\u30c0\u30c3\u30b7\u30e5\u30dc\u30fc\u30c9',
+  'view-register': '\u53d7\u9a13\u767b\u9332',
+  'view-level': '\u30ec\u30d9\u30eb\u9078\u629e',
+  'view-quiz': '\u691c\u5b9a\u8a66\u9a13',
+  'view-results': '\u7d50\u679c\u767a\u8868',
+  'view-ranking': '\u30e9\u30f3\u30ad\u30f3\u30b0'
+};
+
+function navTo(viewId) {
+  document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+  document.getElementById(viewId).classList.add('active');
+  document.getElementById('topbar-title').textContent = VIEW_TITLES[viewId] || '';
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var navBtn = document.getElementById('nav-' + viewId.replace('view-', ''));
+  if (navBtn) navBtn.classList.add('active');
+  closeSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showView(viewId) { navTo(viewId); }
+
+// Sidebar mobile
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-overlay').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ============================================================
+// Name Registration
+// ============================================================
+function registerName() {
+  var input = document.getElementById('player-name');
+  var error = document.getElementById('name-error');
+  var name = input.value.trim();
+  if (!name) { error.style.display = 'block'; input.focus(); return; }
+  error.style.display = 'none';
+  currentPlayer = name;
+  document.getElementById('player-greeting').textContent = currentPlayer + ' \u3055\u3093\u3001\u6311\u6226\u3059\u308b\u30ec\u30d9\u30eb\u3092\u9078\u3093\u3067\u304f\u3060\u3055\u3044\u3002';
+  var userEl = document.getElementById('topbar-username');
+  userEl.style.display = 'inline-flex';
+  userEl.innerHTML = '<span class="topbar-avatar">' + currentPlayer.charAt(0) + '</span>' + escapeHtml(currentPlayer);
+  navTo('view-level');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('player-name').addEventListener('keydown', function(e) { if (e.key === 'Enter') registerName(); });
+});
+
+// ============================================================
+// Quiz Logic
+// ============================================================
+function shuffleArray(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+
+function startQuiz(level) {
+  var data = QUIZ_DATA[level];
+  quizState = { level: level, levelLabel: data.label, questions: shuffleArray(data.questions), currentIndex: 0, answers: [], score: 0 };
+  document.getElementById('quiz-level-title').textContent = '\u691c\u5b9a\u8a66\u9a13\uff1a' + data.label;
+  document.getElementById('quiz-level-badge').innerHTML = '<span class="badge badge-orange">' + data.label + '</span>';
+  navTo('view-quiz');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  var q = quizState.questions[quizState.currentIndex];
+  var total = quizState.questions.length;
+  var current = quizState.currentIndex + 1;
+  document.getElementById('progress-fill').style.width = ((current - 1) / total * 100) + '%';
+  document.getElementById('quiz-counter').textContent = '\u554f\u984c ' + current + ' / ' + total;
+  document.getElementById('quiz-question').textContent = q.question;
+  document.getElementById('quiz-explanation').style.display = 'none';
+  document.getElementById('quiz-next').style.display = 'none';
+  var choicesEl = document.getElementById('quiz-choices');
+  choicesEl.innerHTML = '';
+  q.choices.forEach(function(choice, idx) {
+    var btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = '<span class="choice-marker">' + CHOICE_LABELS[idx] + '</span><span>' + escapeHtml(choice) + '</span>';
+    btn.onclick = function() { selectAnswer(idx); };
+    choicesEl.appendChild(btn);
+  });
+}
+
+function selectAnswer(selectedIdx) {
+  var q = quizState.questions[quizState.currentIndex];
+  var isCorrect = selectedIdx === q.correct;
+  if (isCorrect) quizState.score++;
+  quizState.answers.push(selectedIdx);
+  var buttons = document.querySelectorAll('.choice-btn');
+  buttons.forEach(function(btn, idx) {
+    btn.disabled = true;
+    if (idx === q.correct) btn.classList.add('correct');
+    if (idx === selectedIdx && !isCorrect) btn.classList.add('incorrect');
+  });
+  if (q.explanation) {
+    var expEl = document.getElementById('quiz-explanation');
+    expEl.textContent = q.explanation;
+    expEl.style.display = 'block';
+  }
+  document.getElementById('quiz-next').style.display = 'block';
+  document.getElementById('progress-fill').style.width = ((quizState.currentIndex + 1) / quizState.questions.length * 100) + '%';
+}
+
+function nextQuestion() {
+  quizState.currentIndex++;
+  if (quizState.currentIndex >= quizState.questions.length) showResults();
+  else renderQuestion();
+}
+
+// ============================================================
+// Results
+// ============================================================
+function showResults() {
+  var passed = quizState.score >= 7;
+  document.getElementById('result-level-label').innerHTML = '<span class="badge badge-orange">' + quizState.levelLabel + '</span>';
+  document.getElementById('result-score').innerHTML = quizState.score + ' <span>/ ' + quizState.questions.length + '</span>';
+  var badge = document.getElementById('result-badge');
+  if (passed) {
+    badge.innerHTML = '<div class="result-badge-pass">\u2705 \u5408\u683c\u304a\u3081\u3067\u3068\u3046\u3054\u3056\u3044\u307e\u3059\uff01</div>';
+    document.getElementById('btn-certificate').style.display = 'inline-flex';
+  } else {
+    badge.innerHTML = '<div class="result-badge-fail">\u3082\u3046\u5c11\u3057\u3067\u3059\uff01\u518d\u6311\u6226\u3057\u3066\u307f\u307e\u3057\u3087\u3046</div>';
+    document.getElementById('btn-certificate').style.display = 'none';
+  }
+  saveRanking({ name: currentPlayer, level: quizState.level, levelLabel: quizState.levelLabel, score: quizState.score, total: quizState.questions.length, passed: passed, date: new Date().toISOString() });
+  navTo('view-results');
+}
+
+// ============================================================
+// Ranking
+// ============================================================
+function getRanking() { try { return JSON.parse(localStorage.getItem('crossorder_ranking')) || []; } catch(e) { return []; } }
+
+function saveRanking(entry) {
+  var ranking = getRanking();
+  ranking.push(entry);
+  ranking.sort(function(a, b) { if (b.score !== a.score) return b.score - a.score; return new Date(a.date) - new Date(b.date); });
+  if (ranking.length > 100) ranking.length = 100;
+  localStorage.setItem('crossorder_ranking', JSON.stringify(ranking));
+}
+
+function showRanking() {
+  navTo('view-ranking');
+  var tabs = document.querySelectorAll('.ranking-tab');
+  tabs.forEach(function(t) { t.classList.remove('active'); });
+  tabs[0].classList.add('active');
+  renderRanking('beginner');
+}
+
+function switchRankingTab(level, tabEl) {
+  document.querySelectorAll('.ranking-tab').forEach(function(t) { t.classList.remove('active'); });
+  tabEl.classList.add('active');
+  renderRanking(level);
+}
+
+function renderRanking(level) {
+  var ranking = getRanking().filter(function(r) { return r.level === level; });
+  var container = document.getElementById('ranking-content');
+  if (ranking.length === 0) { container.innerHTML = '<div class="ranking-empty">\u307e\u3060\u8a18\u9332\u304c\u3042\u308a\u307e\u305b\u3093\u3002</div>'; return; }
+  var html = '<table class="ranking-table"><thead><tr><th>\u9806\u4f4d</th><th>\u540d\u524d</th><th>\u30b9\u30b3\u30a2</th><th>\u7d50\u679c</th><th>\u65e5\u4ed8</th></tr></thead><tbody>';
+  ranking.forEach(function(r, i) {
+    var rank = i + 1;
+    var medalClass = '', medalIcon = rank;
+    if (rank === 1) { medalClass = 'medal medal-gold'; medalIcon = '\uD83E\uDD47'; }
+    else if (rank === 2) { medalClass = 'medal medal-silver'; medalIcon = '\uD83E\uDD48'; }
+    else if (rank === 3) { medalClass = 'medal medal-bronze'; medalIcon = '\uD83E\uDD49'; }
+    var date = new Date(r.date);
+    var dateStr = date.getFullYear() + '/' + String(date.getMonth() + 1).padStart(2, '0') + '/' + String(date.getDate()).padStart(2, '0');
+    var statusBadge = r.passed ? '<span class="badge badge-green">\u5408\u683c</span>' : '<span class="badge badge-red">\u4e0d\u5408\u683c</span>';
+    html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function clearRanking() {
+  if (confirm('\u30e9\u30f3\u30ad\u30f3\u30b0\u30c7\u30fc\u30bf\u3092\u3059\u3079\u3066\u524a\u9664\u3057\u307e\u3059\u304b\uff1f')) {
+    localStorage.removeItem('crossorder_ranking');
+    renderRanking('beginner');
+    var tabs = document.querySelectorAll('.ranking-tab');
+    tabs.forEach(function(t) { t.classList.remove('active'); });
+    tabs[0].classList.add('active');
+  }
+}
+
+function escapeHtml(str) { var d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+// ============================================================
+// Certificate (Canvas)
+// ============================================================
+function downloadCertificate() {
+  var canvas = document.createElement('canvas');
+  canvas.width = 1200; canvas.height = 850;
+  var ctx = canvas.getContext('2d');
+  // Background
+  ctx.fillStyle = '#fffaf5'; ctx.fillRect(0, 0, 1200, 850);
+  // Outer border
+  ctx.strokeStyle = '#f97316'; ctx.lineWidth = 6; ctx.strokeRect(20, 20, 1160, 810);
+  // Inner border
+  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1.5; ctx.strokeRect(36, 36, 1128, 778);
+  // Title
+  ctx.fillStyle = '#c2410c'; ctx.textAlign = 'center';
+  ctx.font = 'bold 52px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillText('\u5408 \u683c \u8a3c', 600, 155);
+  // Subtitle
+  ctx.font = '24px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#ea580c';
+  ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u691c\u5b9a ' + quizState.levelLabel, 600, 200);
+  // Line
+  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(300, 228); ctx.lineTo(900, 228); ctx.stroke();
+  // Name
+  ctx.fillStyle = '#1e293b';
+  var ns = 52;
+  ctx.font = 'bold ' + ns + 'px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  while (ctx.measureText(currentPlayer).width > 680 && ns > 24) { ns -= 2; ctx.font = 'bold ' + ns + 'px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif'; }
+  ctx.fillText(currentPlayer, 600, 330);
+  ctx.font = '20px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#64748b'; ctx.fillText('\u6bbf', 600, 368);
+  // Body
+  ctx.font = '19px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#1e293b';
+  ctx.fillText('\u3042\u306a\u305f\u306f\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df\u691c\u5b9a\uff08' + quizState.levelLabel + '\uff09\u306b\u304a\u3044\u3066', 600, 440);
+  ctx.fillText('\u512a\u79c0\u306a\u6210\u7e3e\u3092\u53ce\u3081\u3001\u5408\u683c\u306e\u57fa\u6e96\u3092\u6e80\u305f\u3057\u305f\u3053\u3068\u3092\u8a3c\u3057\u307e\u3059\u3002', 600, 472);
+  // Score
+  ctx.font = 'bold 34px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#f97316';
+  ctx.fillText(quizState.score + ' / ' + quizState.questions.length + ' \u554f\u6b63\u89e3', 600, 548);
+  // Date
+  var now = new Date();
+  var ds = now.getFullYear() + '\u5e74' + (now.getMonth() + 1) + '\u6708' + now.getDate() + '\u65e5';
+  ctx.font = '17px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#64748b'; ctx.fillText(ds, 600, 628);
+  // Issuer
+  ctx.font = '19px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#c2410c'; ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df \u904b\u55b6\u4e8b\u52d9\u5c40', 600, 720);
+  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(350, 742); ctx.lineTo(850, 742); ctx.stroke();
+  // Download
+  var link = document.createElement('a');
+  link.download = '\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u691c\u5b9a_' + quizState.levelLabel + '_\u5408\u683c\u8a3c_' + currentPlayer + '.png';
+  link.href = canvas.toDataURL('image/png'); link.click();
+}
+</script>
+</body>
+</html>
