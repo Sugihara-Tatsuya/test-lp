@@ -672,6 +672,15 @@
             <p id="player-greeting">挑戦するレベルを選んでください。</p>
           </div>
           <div class="level-grid">
+            <div class="level-card" onclick="startQuiz('studygroup')">
+              <div class="level-icon">勉</div>
+              <h3>勉強会編</h3>
+              <p>勉強会で扱った実践的な知識を確認する問題</p>
+              <div class="level-meta">
+                <span class="badge badge-orange">5問</span>
+                <span class="badge badge-slate">4問で合格</span>
+              </div>
+            </div>
             <div class="level-card" onclick="startQuiz('beginner')">
               <div class="level-icon">初</div>
               <h3>初級</h3>
@@ -697,15 +706,6 @@
               <div class="level-meta">
                 <span class="badge badge-orange">10問</span>
                 <span class="badge badge-slate">7問で合格</span>
-              </div>
-            </div>
-            <div class="level-card" onclick="startQuiz('studygroup')">
-              <div class="level-icon">勉</div>
-              <h3>勉強会編</h3>
-              <p>勉強会で扱った実践的な知識を確認する問題</p>
-              <div class="level-meta">
-                <span class="badge badge-orange">5問</span>
-                <span class="badge badge-slate">4問で合格</span>
               </div>
             </div>
           </div>
@@ -757,10 +757,10 @@
           <div class="card" style="padding:0; overflow:hidden;">
             <div style="padding:16px 20px 0;">
               <div class="ranking-tabs">
-                <button class="ranking-tab active" onclick="switchRankingTab('beginner', this)">初級</button>
+                <button class="ranking-tab active" onclick="switchRankingTab('studygroup', this)">勉強会</button>
+                <button class="ranking-tab" onclick="switchRankingTab('beginner', this)">初級</button>
                 <button class="ranking-tab" onclick="switchRankingTab('intermediate', this)">中級</button>
                 <button class="ranking-tab" onclick="switchRankingTab('advanced', this)">上級</button>
-                <button class="ranking-tab" onclick="switchRankingTab('studygroup', this)">勉強会</button>
               </div>
             </div>
             <div id="ranking-content" style="padding:0 0 4px;"></div>
@@ -1054,7 +1054,7 @@ function showRanking() {
   var tabs = document.querySelectorAll('.ranking-tab');
   tabs.forEach(function(t) { t.classList.remove('active'); });
   tabs[0].classList.add('active');
-  renderRanking('beginner');
+  renderRanking('studygroup');
 }
 
 function switchRankingTab(level, tabEl) {
@@ -1090,7 +1090,7 @@ function renderRanking(level) {
 function clearRanking() {
   if (confirm('ランキングデータをすべて削除しますか？（ローカルデータのみ削除されます）')) {
     localStorage.removeItem('crossorder_ranking');
-    renderRanking('beginner');
+    renderRanking('studygroup');
     var tabs = document.querySelectorAll('.ranking-tab');
     tabs.forEach(function(t) { t.classList.remove('active'); });
     tabs[0].classList.add('active');
@@ -1202,7 +1202,7 @@ function downloadCertificate() {
   if (currentAffiliation) {
     ctx.font = '18px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
     ctx.fillStyle = '#666';
-    ctx.fillText(currentAffiliation, CX, 290);
+    ctx.fillText(currentAffiliation, CX, 270);
   }
 
   // Name with underline
@@ -1210,14 +1210,14 @@ function downloadCertificate() {
   var ns = 54;
   ctx.font = 'bold ' + ns + 'px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
   while (ctx.measureText(currentPlayer).width > 580 && ns > 24) { ns -= 2; ctx.font = 'bold ' + ns + 'px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif'; }
-  ctx.fillText(currentPlayer, CX, 330);
+  ctx.fillText(currentPlayer, CX, 340);
   // Name underline
   var nameW = Math.max(ctx.measureText(currentPlayer).width + 60, 200);
   ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(CX - nameW / 2, 348); ctx.lineTo(CX + nameW / 2, 348); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CX - nameW / 2, 358); ctx.lineTo(CX + nameW / 2, 358); ctx.stroke();
   // "殿"
   ctx.font = '20px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
-  ctx.fillStyle = '#555'; ctx.fillText('\u6bbf', CX, 382);
+  ctx.fillStyle = '#555'; ctx.fillText('\u6bbf', CX, 392);
 
   // Body text
   ctx.font = '19px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
