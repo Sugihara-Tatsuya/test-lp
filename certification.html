@@ -1097,52 +1097,182 @@ function escapeHtml(str) { var d = document.createElement('div'); d.textContent 
 // ============================================================
 function downloadCertificate() {
   var canvas = document.createElement('canvas');
-  canvas.width = 1200; canvas.height = 850;
+  var W = 1200, H = 850;
+  canvas.width = W; canvas.height = H;
   var ctx = canvas.getContext('2d');
-  // Background
-  ctx.fillStyle = '#fffaf5'; ctx.fillRect(0, 0, 1200, 850);
-  // Outer border
-  ctx.strokeStyle = '#f97316'; ctx.lineWidth = 6; ctx.strokeRect(20, 20, 1160, 810);
-  // Inner border
-  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1.5; ctx.strokeRect(36, 36, 1128, 778);
+  var CX = W / 2;
+
+  // Background - parchment gradient
+  var bgGrad = ctx.createRadialGradient(CX, H / 2, 100, CX, H / 2, 700);
+  bgGrad.addColorStop(0, '#fffdf7');
+  bgGrad.addColorStop(1, '#f5edd6');
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Outer gold border (thick)
+  var borderGrad = ctx.createLinearGradient(0, 0, W, H);
+  borderGrad.addColorStop(0, '#c8952e');
+  borderGrad.addColorStop(0.3, '#f0d48a');
+  borderGrad.addColorStop(0.5, '#c8952e');
+  borderGrad.addColorStop(0.7, '#f0d48a');
+  borderGrad.addColorStop(1, '#c8952e');
+  ctx.strokeStyle = borderGrad;
+  ctx.lineWidth = 10;
+  ctx.strokeRect(18, 18, W - 36, H - 36);
+
+  // Inner decorative border (thin)
+  ctx.strokeStyle = '#c8952e';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(38, 38, W - 76, H - 76);
+
+  // Second inner border (dotted effect)
+  ctx.strokeStyle = '#d4a94a';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([6, 4]);
+  ctx.strokeRect(46, 46, W - 92, H - 92);
+  ctx.setLineDash([]);
+
+  // Corner ornaments
+  function drawCornerOrnament(cx, cy, angle) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(angle);
+    ctx.strokeStyle = '#c8952e';
+    ctx.lineWidth = 2;
+    ctx.fillStyle = '#d4a94a';
+    // Floral corner lines
+    ctx.beginPath();
+    ctx.moveTo(0, 0); ctx.lineTo(50, 0);
+    ctx.moveTo(0, 0); ctx.lineTo(0, 50);
+    ctx.stroke();
+    // Corner arc
+    ctx.beginPath();
+    ctx.arc(0, 0, 30, 0, Math.PI / 2);
+    ctx.stroke();
+    // Small diamond
+    ctx.beginPath();
+    ctx.moveTo(18, 0); ctx.lineTo(24, -6); ctx.lineTo(30, 0); ctx.lineTo(24, 6); ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0, 18); ctx.lineTo(-6, 24); ctx.lineTo(0, 30); ctx.lineTo(6, 24); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+  drawCornerOrnament(56, 56, 0);
+  drawCornerOrnament(W - 56, 56, Math.PI / 2);
+  drawCornerOrnament(W - 56, H - 56, Math.PI);
+  drawCornerOrnament(56, H - 56, -Math.PI / 2);
+
+  // Decorative top line with diamond
+  ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(200, 100); ctx.lineTo(520, 100); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(680, 100); ctx.lineTo(1000, 100); ctx.stroke();
+  // Center diamond on line
+  ctx.fillStyle = '#c8952e';
+  ctx.beginPath();
+  ctx.moveTo(CX, 92); ctx.lineTo(CX + 10, 100); ctx.lineTo(CX, 108); ctx.lineTo(CX - 10, 100); ctx.closePath();
+  ctx.fill();
+
   // Title
-  ctx.fillStyle = '#c2410c'; ctx.textAlign = 'center';
-  ctx.font = 'bold 52px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillText('\u5408 \u683c \u8a3c', 600, 155);
-  // Subtitle
-  ctx.font = '24px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#ea580c';
-  ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u691c\u5b9a ' + quizState.levelLabel, 600, 200);
-  // Line
-  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(300, 228); ctx.lineTo(900, 228); ctx.stroke();
-  // Name
-  ctx.fillStyle = '#1e293b';
-  var ns = 52;
-  ctx.font = 'bold ' + ns + 'px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  while (ctx.measureText(currentPlayer).width > 680 && ns > 24) { ns -= 2; ctx.font = 'bold ' + ns + 'px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif'; }
-  ctx.fillText(currentPlayer, 600, 330);
-  ctx.font = '20px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#64748b'; ctx.fillText('\u6bbf', 600, 368);
-  // Body
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#7c4a0a';
+  ctx.font = 'bold 56px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+  ctx.fillText('\u5408 \u683c \u8a3c', CX, 170);
+
+  // Title underline ornament
+  ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(380, 188); ctx.lineTo(CX - 20, 188); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(CX + 20, 188); ctx.lineTo(820, 188); ctx.stroke();
+  ctx.fillStyle = '#c8952e';
+  ctx.beginPath(); ctx.arc(CX, 188, 4, 0, Math.PI * 2); ctx.fill();
+
+  // Subtitle - level
+  ctx.font = '22px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#8b6914';
+  ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df\u691c\u5b9a\u3000' + quizState.levelLabel, CX, 228);
+
+  // Name with underline
+  ctx.fillStyle = '#1a1a1a';
+  var ns = 54;
+  ctx.font = 'bold ' + ns + 'px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+  while (ctx.measureText(currentPlayer).width > 580 && ns > 24) { ns -= 2; ctx.font = 'bold ' + ns + 'px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif'; }
+  ctx.fillText(currentPlayer, CX, 330);
+  // Name underline
+  var nameW = Math.max(ctx.measureText(currentPlayer).width + 60, 200);
+  ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(CX - nameW / 2, 348); ctx.lineTo(CX + nameW / 2, 348); ctx.stroke();
+  // "殿"
+  ctx.font = '20px "Hiragino Mincho ProN", "Yu Mincho", "Noto Serif JP", serif';
+  ctx.fillStyle = '#555'; ctx.fillText('\u6bbf', CX, 382);
+
+  // Body text
   ctx.font = '19px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#1e293b';
-  ctx.fillText('\u3042\u306a\u305f\u306f\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df\u691c\u5b9a\uff08' + quizState.levelLabel + '\uff09\u306b\u304a\u3044\u3066', 600, 440);
-  ctx.fillText('\u512a\u79c0\u306a\u6210\u7e3e\u3092\u53ce\u3081\u3001\u5408\u683c\u306e\u57fa\u6e96\u3092\u6e80\u305f\u3057\u305f\u3053\u3068\u3092\u8a3c\u3057\u307e\u3059\u3002', 600, 472);
-  // Score
-  ctx.font = 'bold 34px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#f97316';
-  ctx.fillText(quizState.score + ' / ' + quizState.questions.length + ' \u554f\u6b63\u89e3', 600, 548);
+  ctx.fillStyle = '#333';
+  ctx.fillText('\u3042\u306a\u305f\u306f\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df\u691c\u5b9a\uff08' + quizState.levelLabel + '\uff09\u306b\u304a\u3044\u3066', CX, 445);
+  ctx.fillText('\u512a\u79c0\u306a\u6210\u7e3e\u3092\u53ce\u3081\u3001\u5408\u683c\u306e\u57fa\u6e96\u3092\u6e80\u305f\u3057\u305f\u3053\u3068\u3092\u8a3c\u3057\u307e\u3059\u3002', CX, 477);
+
+  // Score in decorative frame
+  ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1.5;
+  var scoreText = quizState.score + ' / ' + quizState.questions.length + ' \u554f\u6b63\u89e3';
+  // Score box
+  var boxW = 280, boxH = 52, boxX = CX - boxW / 2, boxY = 518;
+  ctx.beginPath();
+  ctx.moveTo(boxX + 8, boxY);
+  ctx.lineTo(boxX + boxW - 8, boxY);
+  ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + 8);
+  ctx.lineTo(boxX + boxW, boxY + boxH - 8);
+  ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - 8, boxY + boxH);
+  ctx.lineTo(boxX + 8, boxY + boxH);
+  ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - 8);
+  ctx.lineTo(boxX, boxY + 8);
+  ctx.quadraticCurveTo(boxX, boxY, boxX + 8, boxY);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200, 149, 46, 0.08)';
+  ctx.fill();
+  ctx.stroke();
+  ctx.font = 'bold 30px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#b47d1a';
+  ctx.fillText(scoreText, CX, 554);
+
   // Date
   var now = new Date();
   var ds = now.getFullYear() + '\u5e74' + (now.getMonth() + 1) + '\u6708' + now.getDate() + '\u65e5';
   ctx.font = '17px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#64748b'; ctx.fillText(ds, 600, 628);
+  ctx.fillStyle = '#666'; ctx.fillText(ds, CX, 630);
+
+  // Gold seal / stamp
+  var sealX = CX + 260, sealY = 700;
+  // Outer seal ring
+  ctx.beginPath(); ctx.arc(sealX, sealY, 44, 0, Math.PI * 2);
+  var sealGrad = ctx.createRadialGradient(sealX - 10, sealY - 10, 5, sealX, sealY, 44);
+  sealGrad.addColorStop(0, '#f0d48a');
+  sealGrad.addColorStop(0.6, '#c8952e');
+  sealGrad.addColorStop(1, '#a07420');
+  ctx.fillStyle = sealGrad;
+  ctx.fill();
+  // Inner seal ring
+  ctx.beginPath(); ctx.arc(sealX, sealY, 36, 0, Math.PI * 2);
+  ctx.strokeStyle = '#f5edd6'; ctx.lineWidth = 1.5; ctx.stroke();
+  // Seal text
+  ctx.font = 'bold 16px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+  ctx.fillStyle = '#fffdf7';
+  ctx.fillText('\u5408\u683c', sealX, sealY + 6);
+
   // Issuer
   ctx.font = '19px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
-  ctx.fillStyle = '#c2410c'; ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df \u904b\u55b6\u4e8b\u52d9\u5c40', 600, 720);
-  ctx.strokeStyle = '#fdba74'; ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.moveTo(350, 742); ctx.lineTo(850, 742); ctx.stroke();
+  ctx.fillStyle = '#7c4a0a';
+  ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df', CX, 700);
+  ctx.fillText('\u904b\u55b6\u4e8b\u52d9\u5c40', CX, 730);
+
+  // Bottom decorative line
+  ctx.strokeStyle = '#c8952e'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(200, 770); ctx.lineTo(520, 770); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(680, 770); ctx.lineTo(1000, 770); ctx.stroke();
+  ctx.fillStyle = '#c8952e';
+  ctx.beginPath();
+  ctx.moveTo(CX, 762); ctx.lineTo(CX + 10, 770); ctx.lineTo(CX, 778); ctx.lineTo(CX - 10, 770); ctx.closePath();
+  ctx.fill();
+
   // Download
   var link = document.createElement('a');
   link.download = '\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u691c\u5b9a_' + quizState.levelLabel + '_\u5408\u683c\u8a3c_' + currentPlayer + '.png';
