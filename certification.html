@@ -655,6 +655,10 @@
             <label class="input-label" for="player-name">お名前</label>
             <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20">
             <p id="name-error" style="color:var(--red-500); font-size:0.78rem; margin-top:6px; display:none;">名前を入力してください。</p>
+            <div style="margin-top:16px;">
+              <label class="input-label" for="player-affiliation">所属 <span style="font-size:0.75rem; color:var(--slate-400); font-weight:400;">（任意）</span></label>
+              <input type="text" id="player-affiliation" class="input-field" placeholder="例：営業部" maxlength="30">
+            </div>
             <div style="margin-top:20px;">
               <button class="btn" onclick="registerName()">次へ進む</button>
             </div>
@@ -842,6 +846,7 @@ const QUIZ_DATA = {
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwyJtXbhlLQTJ0w_9R5uuoEngSlLj85gnpkhbv0ADowzkwCfRdfcLL0vO8KxxMMnIk1Qg/exec';
 
 let currentPlayer = "";
+let currentAffiliation = "";
 let quizState = { level: null, questions: [], currentIndex: 0, answers: [], score: 0 };
 const CHOICE_LABELS = ['A', 'B', 'C', 'D'];
 
@@ -890,6 +895,7 @@ function registerName() {
   if (!name) { error.style.display = 'block'; input.focus(); return; }
   error.style.display = 'none';
   currentPlayer = name;
+  currentAffiliation = document.getElementById('player-affiliation').value.trim();
   document.getElementById('player-greeting').textContent = currentPlayer + ' \u3055\u3093\u3001\u6311\u6226\u3059\u308b\u30ec\u30d9\u30eb\u3092\u9078\u3093\u3067\u304f\u3060\u3055\u3044\u3002';
   var userEl = document.getElementById('topbar-username');
   userEl.style.display = 'inline-flex';
@@ -985,7 +991,7 @@ function showResults() {
     badge.innerHTML = '<div class="result-badge-fail">\u3082\u3046\u5c11\u3057\u3067\u3059\uff01\u518d\u6311\u6226\u3057\u3066\u307f\u307e\u3057\u3087\u3046</div>';
     document.getElementById('btn-certificate').style.display = 'none';
   }
-  saveRanking({ name: currentPlayer, level: quizState.level, levelLabel: quizState.levelLabel, score: quizState.score, total: quizState.questions.length, passed: passed, date: new Date().toISOString() });
+  saveRanking({ name: currentPlayer, affiliation: currentAffiliation, level: quizState.level, levelLabel: quizState.levelLabel, score: quizState.score, total: quizState.questions.length, passed: passed, date: new Date().toISOString() });
   navTo('view-results');
 }
 
@@ -1061,7 +1067,7 @@ function renderRanking(level) {
   fetchRanking(level, function(ranking) {
     var container = document.getElementById('ranking-content');
     if (ranking.length === 0) { container.innerHTML = '<div class="ranking-empty">まだ記録がありません。</div>'; return; }
-    var html = '<table class="ranking-table"><thead><tr><th>順位</th><th>名前</th><th>スコア</th><th>結果</th><th>日付</th></tr></thead><tbody>';
+    var html = '<table class="ranking-table"><thead><tr><th>順位</th><th>名前</th><th>所属</th><th>スコア</th><th>結果</th><th>日付</th></tr></thead><tbody>';
     ranking.forEach(function(r, i) {
       var rank = i + 1;
       var medalClass = '', medalIcon = rank;
@@ -1073,7 +1079,8 @@ function renderRanking(level) {
       var rPassLine = r.total <= 5 ? Math.ceil(r.total * 0.8) : 7;
       var passed = r.passed !== undefined ? r.passed : (r.score >= rPassLine);
       var statusBadge = passed ? '<span class="badge badge-green">合格</span>' : '<span class="badge badge-red">不合格</span>';
-      html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
+      var affil = r.affiliation ? escapeHtml(r.affiliation) : '<span style="color:var(--slate-300);">-</span>';
+      html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td style="font-size:0.78rem;color:var(--slate-500);">' + affil + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
     });
     html += '</tbody></table>';
     container.innerHTML = html;
@@ -1190,6 +1197,13 @@ function downloadCertificate() {
   ctx.font = '22px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
   ctx.fillStyle = '#8b6914';
   ctx.fillText('\u30af\u30ed\u30b9\u30aa\u30fc\u30c0\u30fc\u7d66\u98df\u691c\u5b9a\u3000' + quizState.levelLabel, CX, 228);
+
+  // Affiliation (if present)
+  if (currentAffiliation) {
+    ctx.font = '18px "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif';
+    ctx.fillStyle = '#666';
+    ctx.fillText(currentAffiliation, CX, 290);
+  }
 
   // Name with underline
   ctx.fillStyle = '#1a1a1a';
