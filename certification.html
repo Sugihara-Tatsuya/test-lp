@@ -652,12 +652,12 @@
             <p>ランキングと表彰状に表示される名前を入力してください。</p>
           </div>
           <div class="card" style="max-width:440px;">
-            <label class="input-label" for="player-name">お名前</label>
-            <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20" onkeydown="if(event.key==='Enter')event.preventDefault()">
-            <p id="name-error" style="color:var(--red-500); font-size:0.78rem; margin-top:6px; display:none;">名前を入力してください。</p>
+            <label class="input-label" for="player-affiliation">所属 <span style="font-size:0.75rem; color:var(--slate-400); font-weight:400;">（任意）</span></label>
+            <input type="text" id="player-affiliation" class="input-field" placeholder="例：営業部" maxlength="30" onkeydown="if(event.key==='Enter')event.preventDefault()">
             <div style="margin-top:16px;">
-              <label class="input-label" for="player-affiliation">所属 <span style="font-size:0.75rem; color:var(--slate-400); font-weight:400;">（任意）</span></label>
-              <input type="text" id="player-affiliation" class="input-field" placeholder="例：営業部" maxlength="30" onkeydown="if(event.key==='Enter')event.preventDefault()">
+              <label class="input-label" for="player-name">お名前</label>
+              <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20" onkeydown="if(event.key==='Enter')event.preventDefault()">
+              <p id="name-error" style="color:var(--red-500); font-size:0.78rem; margin-top:6px; display:none;">名前を入力してください。</p>
             </div>
             <div style="margin-top:20px;">
               <button class="btn" onclick="registerName()">次へ進む</button>
@@ -767,7 +767,6 @@
           </div>
           <div class="ranking-footer">
             <button class="btn btn-ghost btn-sm" onclick="navTo('view-start')">トップページへ戻る</button>
-            <button class="btn btn-danger btn-sm" onclick="clearRanking()">ランキングをクリア</button>
           </div>
         </div>
 
@@ -904,7 +903,7 @@ function registerName() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('player-name').addEventListener('keydown', function(e) { if (e.key === 'Enter') registerName(); });
+  // Enterキーでの自動遷移を防止（ボタンクリックのみで次へ進む）
 });
 
 // ============================================================
