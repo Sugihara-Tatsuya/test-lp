@@ -653,11 +653,11 @@
           </div>
           <div class="card" style="max-width:440px;">
             <label class="input-label" for="player-name">お名前</label>
-            <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20">
+            <input type="text" id="player-name" class="input-field" placeholder="例：山田 太郎" maxlength="20" onkeydown="if(event.key==='Enter')event.preventDefault()">
             <p id="name-error" style="color:var(--red-500); font-size:0.78rem; margin-top:6px; display:none;">名前を入力してください。</p>
             <div style="margin-top:16px;">
               <label class="input-label" for="player-affiliation">所属 <span style="font-size:0.75rem; color:var(--slate-400); font-weight:400;">（任意）</span></label>
-              <input type="text" id="player-affiliation" class="input-field" placeholder="例：営業部" maxlength="30">
+              <input type="text" id="player-affiliation" class="input-field" placeholder="例：営業部" maxlength="30" onkeydown="if(event.key==='Enter')event.preventDefault()">
             </div>
             <div style="margin-top:20px;">
               <button class="btn" onclick="registerName()">次へ進む</button>
