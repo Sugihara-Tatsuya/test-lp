@@ -4,7 +4,7 @@
  * セットアップ手順:
  * 1. Google スプレッドシートを新規作成
  * 2. シート名を「ranking」に変更
- * 3. A1:F1 に見出しを入力: name, level, levelLabel, score, total, date
+ * 3. A1:G1 に見出しを入力: name, affiliation, level, levelLabel, score, total, date
  * 4. 「拡張機能」→「Apps Script」を開く
  * 5. このコードを貼り付けて保存
  * 6. 「デプロイ」→「新しいデプロイ」→ 種類:「ウェブアプリ」
@@ -64,8 +64,9 @@ function doPost(e) {
       return jsonResponse({ error: 'Missing required fields' }, 400);
     }
 
-    // サニタイズ: 名前は最大20文字
+    // サニタイズ: 名前は最大20文字、所属は最大30文字
     const name = String(body.name).substring(0, 20);
+    const affiliation = String(body.affiliation || '').substring(0, 30);
     const level = String(body.level);
     const levelLabel = String(body.levelLabel || '');
     const score = Number(body.score);
@@ -74,7 +75,7 @@ function doPost(e) {
     const date = body.date || new Date().toISOString();
 
     // 追記
-    sheet.appendRow([name, level, levelLabel, score, total, date]);
+    sheet.appendRow([name, affiliation, level, levelLabel, score, total, date]);
 
     // 上限超過時は古いレコードを削除
     const lastRow = sheet.getLastRow();
@@ -92,17 +93,18 @@ function getSheetData(sheet) {
   const lastRow = sheet.getLastRow();
   if (lastRow <= 1) return [];
 
-  const range = sheet.getRange(2, 1, lastRow - 1, 6);
+  const range = sheet.getRange(2, 1, lastRow - 1, 7);
   const values = range.getValues();
 
   return values.map(function(row) {
     return {
       name: row[0],
-      level: row[1],
-      levelLabel: row[2],
-      score: row[3],
-      total: row[4],
-      date: row[5]
+      affiliation: row[1],
+      level: row[2],
+      levelLabel: row[3],
+      score: row[4],
+      total: row[5],
+      date: row[6]
     };
   });
 }
