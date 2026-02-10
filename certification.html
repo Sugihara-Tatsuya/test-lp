@@ -590,7 +590,7 @@
         </button>
         <button class="nav-item" id="nav-level" onclick="navTo('view-level')">
           <span class="nav-icon">&#9881;</span>レベル選択
-          <span class="nav-badge">3</span>
+          <span class="nav-badge">4</span>
         </button>
         <button class="nav-item" id="nav-quiz" onclick="navTo('view-quiz')">
           <span class="nav-icon">&#10067;</span>検定試験
@@ -635,7 +635,7 @@
             <h2 style="font-size:1.4rem; font-weight:700; color:var(--slate-800); margin-bottom:12px;">クロスオーダー給食検定</h2>
             <p style="font-size:0.9rem; color:var(--slate-500); line-height:1.8; margin-bottom:36px;">
               クロスオーダー給食の操作マニュアルに基づいた知識検定です。<br>
-              初級・中級・上級の3レベル、各10問から出題されます。<br>
+              初級・中級・上級・勉強会編の4レベルから出題されます。<br>
               7問以上の正解で合格となり、表彰状をダウンロードできます。
             </p>
             <div style="display:flex; flex-direction:column; gap:12px; align-items:center;">
@@ -695,6 +695,15 @@
                 <span class="badge badge-slate">7問で合格</span>
               </div>
             </div>
+            <div class="level-card" onclick="startQuiz('studygroup')">
+              <div class="level-icon">勉</div>
+              <h3>勉強会編</h3>
+              <p>勉強会で扱った実践的な知識を確認する問題</p>
+              <div class="level-meta">
+                <span class="badge badge-orange">5問</span>
+                <span class="badge badge-slate">4問で合格</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -747,6 +756,7 @@
                 <button class="ranking-tab active" onclick="switchRankingTab('beginner', this)">初級</button>
                 <button class="ranking-tab" onclick="switchRankingTab('intermediate', this)">中級</button>
                 <button class="ranking-tab" onclick="switchRankingTab('advanced', this)">上級</button>
+                <button class="ranking-tab" onclick="switchRankingTab('studygroup', this)">勉強会</button>
               </div>
             </div>
             <div id="ranking-content" style="padding:0 0 4px;"></div>
@@ -809,6 +819,16 @@ const QUIZ_DATA = {
       { question: "一次保存機能について、給食一括注文の突合編集中に「一次保存」をクリックした場合の挙動として正しいものはどれですか？", choices: ["注文一覧に「一次保存」として表示される", "編集途中の状態が保存され、後で再開できる", "取引先に通知が飛び、確認待ちになる", "CSVデータが上書き保存される"], correct: 1, explanation: "編集途中の場合は「一次保存」をクリックすることで、編集途中の状態が保存され後で再開できます。" },
       { question: "履歴画面から「部門詳細」を確認する手順として正しいものはどれですか？", choices: ["注文日をクリックして「詳細」タブを開く", "確定日時を選択し、「部門詳細を確認」をクリックする", "取引先名をクリックし、履歴タブから選択する", "履歴画面からは部門詳細は確認できない"], correct: 1, explanation: "確定日時を選択し、「部門詳細を確認」をクリックして部門詳細を確認します。" },
       { question: "納品日の初期設定で、取引先ごとの設定画面を開いた際、デフォルト（変更前）の設定はどうなっていますか？", choices: ["常に「使用日の1日前」", "常に「使用日と同日」", "全体設定（発注画面設定）に準ずる設定", "ランダム（設定なし）"], correct: 2, explanation: "取引先ごとの設定のデフォルトは「発注画面設定に準ずる」、つまり全体設定に従う設定になっています。" }
+    ]
+  }
+  studygroup: {
+    label: "勉強会編",
+    questions: [
+      { question: "クロスオーダー給食は、特定の施設や業態に特化した機能を持っています。次のうち、クロスオーダー給食の主要なターゲットではないものはどれでしょうか？", choices: ["老人ホーム・介護施設", "病院", "個人の居酒屋・レストラン", "幼稚園・保育園"], correct: 2, explanation: "「クロスオーダー給食」は、老人ホーム、病院、産業給食、幼稚園などの「施設」に特化した受発注システムです。個人の居酒屋やレストランは、通常版の「クロスオーダー（飲食店向け）」の対象となります。" },
+      { question: "まだシステムを利用していない取引先（施設）を利用開始へ導く際、誤っている手順はどれでしょうか？", choices: ["取引先一覧画面でメールアドレスを入力し、招待メールを送信する。", "専用チラシを渡し、掲載されているQRコードを読み込んでもらう。", "取引先一覧画面で「招待する」ボタンを押し、招待用のURLを発行する。", "卸会社の担当者が取引先の代理でIDとパスワードを決定し、口頭で伝える。"], correct: 3, explanation: "セキュリティおよび利用規約の観点から、パスワードの設定は招待メールを受け取った「施設側」が行う必要があります。卸会社側でパスワードを決めて渡す運用は行いません。" },
+      { question: "栄養管理ソフトなどから出力されたCSVデータで注文が入った場合（献立注文）、「献立注文突合」画面で「背景が黄色」で表示されている商品は、どのような状態を表していますか？", choices: ["在庫が残りわずかであり、注意が必要な商品", "賞味期限が近く、特売対象となっている商品", "過去に突合履歴がなく、どの商品か紐付けができていない商品", "発注数量が通常よりも多く、確認が必要な商品"], correct: 2, explanation: "黄色は「突合（紐付け）ができていない商品」を表します。施設側のオーダー商品名と、クロスオーダー上の商品マスタが紐付いていないため、商品検索を行って紐付ける必要があります（一度紐付けると次回からは白色になります）。" },
+      { question: "特定の取引先だけ「木曜日も休業（納品不可）」にしたい場合、どの設定機能を使用するのが最も適切でしょうか？", choices: ["「基本設定」の納品不可日を変更する。", "新しい「納品グループ」を作成し、その取引先を所属させる。", "取引先マスタの「備考欄」に「木曜納品不可」と記載する。", "商品マスタの「リードタイム」を一律で1日延ばす。"], correct: 1, explanation: "「基本設定」を変更すると全取引先に影響が出ます。特定の取引先のみ条件を変えたい場合は、「納品グループ」を作成し、そこに該当の取引先を紐付けることで、個別のカレンダーやリードタイム設定を適用できます。" },
+      { question: "受注担当者が管理画面で「注文を確定」ボタンを押した後の仕様として、正しい説明はどれでしょうか？", choices: ["確定後も、納品日の前日までは自由に数量変更ができる。", "確定後は、卸会社側からも施設側からも、画面上で注文の変更・削除はできなくなる。", "確定後は、施設側からは変更できないが、卸会社側（管理者）だけは変更できる。", "確定ボタンを押しても、施設側に通知メールが届くまでは変更が可能である。"], correct: 1, explanation: "注文確定（ステータスが「注文確定済」になる）後は、画面上からの修正・変更は一切できなくなります。確定前に内容を十分確認するか、誤って確定した場合は運用ルール（電話対応など）に基づいた対処が必要になります。" }
     ]
   }
 };
@@ -952,7 +972,9 @@ function nextQuestion() {
 // Results
 // ============================================================
 function showResults() {
-  var passed = quizState.score >= 7;
+  var totalQ = quizState.questions.length;
+  var passLine = totalQ <= 5 ? Math.ceil(totalQ * 0.8) : 7;
+  var passed = quizState.score >= passLine;
   document.getElementById('result-level-label').innerHTML = '<span class="badge badge-orange">' + quizState.levelLabel + '</span>';
   document.getElementById('result-score').innerHTML = quizState.score + ' <span>/ ' + quizState.questions.length + '</span>';
   var badge = document.getElementById('result-badge');
@@ -1048,7 +1070,8 @@ function renderRanking(level) {
       else if (rank === 3) { medalClass = 'medal medal-bronze'; medalIcon = '\uD83E\uDD49'; }
       var date = new Date(r.date);
       var dateStr = date.getFullYear() + '/' + String(date.getMonth() + 1).padStart(2, '0') + '/' + String(date.getDate()).padStart(2, '0');
-      var passed = r.passed !== undefined ? r.passed : (r.score >= 7);
+      var rPassLine = r.total <= 5 ? Math.ceil(r.total * 0.8) : 7;
+      var passed = r.passed !== undefined ? r.passed : (r.score >= rPassLine);
       var statusBadge = passed ? '<span class="badge badge-green">合格</span>' : '<span class="badge badge-red">不合格</span>';
       html += '<tr><td class="' + medalClass + '">' + medalIcon + '</td><td>' + escapeHtml(r.name) + '</td><td>' + r.score + '/' + r.total + '</td><td>' + statusBadge + '</td><td style="color:var(--slate-400);font-size:0.78rem;">' + dateStr + '</td></tr>';
     });
