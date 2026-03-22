@@ -129,12 +129,13 @@ def get_non_log_channel_ids(conn) -> list:
     ]
     if filtered.empty:
         return None
-    # Exclude channels where bot messages >= 80%
+    # Exclude channels where bot/automated messages >= 80%
+    # Counts both is_bot=1 users AND NULL user_id (webhooks/integrations)
     bot_heavy = pd.read_sql_query(
         """
         SELECT m.channel_id,
                COUNT(*) AS total,
-               SUM(CASE WHEN u.is_bot = 1 THEN 1 ELSE 0 END) AS bot_cnt
+               SUM(CASE WHEN u.is_bot = 1 OR m.user_id IS NULL THEN 1 ELSE 0 END) AS bot_cnt
         FROM messages m
         LEFT JOIN users u ON m.user_id = u.user_id
         GROUP BY m.channel_id
