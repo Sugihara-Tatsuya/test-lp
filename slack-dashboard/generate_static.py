@@ -59,7 +59,7 @@ def get_period_user_stats(
                COUNT(*) AS "msg_{label}"
         FROM messages m
         LEFT JOIN users u ON m.user_id = u.user_id
-        WHERE m.is_reply = 0 AND m.user_id IS NOT NULL
+        WHERE m.user_id IS NOT NULL
           AND m.posted_at >= ? AND m.posted_at < ?
           {ch_filter_msg}
         GROUP BY m.user_id
