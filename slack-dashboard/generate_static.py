@@ -112,6 +112,22 @@ def alert_class(alert: str) -> str:
     return ""
 
 
+def change_html(curr: int, prev: int) -> str:
+    """Return HTML snippet showing +/- change and percentage."""
+    diff = curr - prev
+    if prev == 0:
+        pct_str = "—" if curr == 0 else "+∞"
+    else:
+        pct = diff * 100 / prev
+        pct_str = f"{pct:+.0f}%"
+    if diff > 0:
+        return f'<span class="change-up">+{diff:,} ({pct_str})</span>'
+    elif diff < 0:
+        return f'<span class="change-down">{diff:,} ({pct_str})</span>'
+    else:
+        return f'<span class="change-zero">±0</span>'
+
+
 def row_alert_level(msg_alert: str, rxn_alert: str) -> str:
     if "危険" in msg_alert or "危険" in rxn_alert:
         return "red"
@@ -168,14 +184,19 @@ def build_30day_rows(df: pd.DataFrame) -> str:
         rp, rc = int(row.get("rxn_prev", 0)), int(row.get("rxn_curr", 0))
         ma, ra = compute_alert(mc, mp), compute_alert(rc, rp)
         rl = row_alert_level(ma, ra)
+        msg_change = change_html(mc, mp)
+        rxn_change = change_html(rc, rp)
         rows.append(
             f'<tr data-alert="{rl}" data-msg-curr="{mc}" data-msg-prev="{mp}" '
-            f'data-rxn-curr="{rc}" data-rxn-prev="{rp}">'
+            f'data-msg-diff="{mc - mp}" data-rxn-curr="{rc}" data-rxn-prev="{rp}" '
+            f'data-rxn-diff="{rc - rp}">'
             f'<td class="name-cell">{row["display_name"]}</td>'
             f'<td class="num">{mp:,}</td><td class="num">{mc:,}</td>'
             f'<td class="alert {alert_class(ma)}">{ma}</td>'
+            f'<td class="change-cell">{msg_change}</td>'
             f'<td class="num">{rp:,}</td><td class="num">{rc:,}</td>'
-            f'<td class="alert {alert_class(ra)}">{ra}</td></tr>'
+            f'<td class="alert {alert_class(ra)}">{ra}</td>'
+            f'<td class="change-cell">{rxn_change}</td></tr>'
         )
     return "\n".join(rows)
 
@@ -359,6 +380,10 @@ def generate_html(
   td.alert {{ text-align: center; font-weight: 700; font-size: 0.8rem; min-width: 80px; }}
   .alert-yellow {{ background: var(--yellow-bg); color: var(--yellow-text); }}
   .alert-red {{ background: var(--red-bg); color: var(--red-text); }}
+  .change-cell {{ text-align: right; font-size: 0.82rem; white-space: nowrap; padding-right: 10px; }}
+  .change-up {{ color: #1971c2; }}
+  .change-down {{ color: #e03131; }}
+  .change-zero {{ color: #868e96; }}
   .summary {{ font-weight: 700; background: #f1f3f5 !important; }}
   tbody tr:hover td {{ background: #f0f4ff; }}
   tbody tr:hover .name-cell {{ background: #f0f4ff; }}
@@ -415,16 +440,18 @@ def generate_html(
         <thead>
           <tr class="header-group">
             <th rowspan="2" class="name-header" onclick="sortTable('table30','name')">ユーザー名</th>
-            <th colspan="3" class="group-header msg-group">メッセージ数</th>
-            <th colspan="3" class="group-header rxn-group">リアクション数</th>
+            <th colspan="4" class="group-header msg-group">メッセージ数</th>
+            <th colspan="4" class="group-header rxn-group">リアクション数</th>
           </tr>
           <tr class="header-sub">
             <th class="num" data-col="msg-prev" onclick="sortTable('table30','msg-prev')">前30日</th>
             <th class="num sort-desc" data-col="msg-curr" onclick="sortTable('table30','msg-curr')">直近30日</th>
             <th data-col="msg-alert" onclick="sortTable('table30','msg-alert')">アラート</th>
+            <th class="num" data-col="msg-diff" onclick="sortTable('table30','msg-diff')">増減</th>
             <th class="num" data-col="rxn-prev" onclick="sortTable('table30','rxn-prev')">前30日</th>
             <th class="num" data-col="rxn-curr" onclick="sortTable('table30','rxn-curr')">直近30日</th>
             <th data-col="rxn-alert" onclick="sortTable('table30','rxn-alert')">アラート</th>
+            <th class="num" data-col="rxn-diff" onclick="sortTable('table30','rxn-diff')">増減</th>
           </tr>
         </thead>
         <tbody>{tab30_rows}</tbody>
@@ -433,9 +460,11 @@ def generate_html(
           <td class="num summary">{tab30_stats['prev_msg']:,}</td>
           <td class="num summary">{tab30_stats['current_msg']:,}</td>
           <td class="alert"></td>
+          <td class="change-cell summary">{change_html(tab30_stats['current_msg'], tab30_stats['prev_msg'])}</td>
           <td class="num summary">{tab30_stats['prev_rxn']:,}</td>
           <td class="num summary">{tab30_stats['current_rxn']:,}</td>
           <td class="alert"></td>
+          <td class="change-cell summary">{change_html(tab30_stats['current_rxn'], tab30_stats['prev_rxn'])}</td>
         </tr></tfoot>
       </table>
       </div>
@@ -536,7 +565,7 @@ function sortTable(tableId, col) {{
     if (col === 'msg-alert' || col === 'rxn-alert') {{
       const ci = col === 'msg-alert'
         ? (tableId === 'table30' ? 3 : 4)
-        : (tableId === 'table30' ? 6 : 8);
+        : (tableId === 'table30' ? 7 : 8);
       va = alertRank(a.cells[ci].textContent.trim());
       vb = alertRank(b.cells[ci].textContent.trim());
     }} else {{
