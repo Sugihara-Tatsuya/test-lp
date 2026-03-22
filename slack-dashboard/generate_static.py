@@ -592,7 +592,7 @@ def get_monthly_user_stats(conn, months, channel_ids):
     msg_query = f"""
         SELECT m.user_id, COALESCE(u.display_name, m.user_id) AS display_name, {msg_cases}
         FROM messages m LEFT JOIN users u ON m.user_id = u.user_id
-        WHERE m.is_reply = 0 AND m.user_id IS NOT NULL {ch_filter_msg}
+        WHERE m.user_id IS NOT NULL {ch_filter_msg}
           AND strftime('%Y-%m', m.posted_at) IN ({','.join('?' for _ in months)})
         GROUP BY m.user_id
     """
