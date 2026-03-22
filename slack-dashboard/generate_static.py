@@ -708,6 +708,13 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(html)
 
+    # Also write to GitHub Pages path
+    pages_dir = os.path.join(os.path.dirname(__file__), "..", "docs")
+    if os.path.isdir(pages_dir):
+        pages_path = os.path.join(pages_dir, "slack-dashboard.html")
+        with open(pages_path, "w", encoding="utf-8") as f:
+            f.write(html)
+
     conn.close()
     print(f"Dashboard written to {out_path}")
     print(f"  30-day: {tab30_stats['total_users']} users, {tab30_stats['alert_count']} alerts")
