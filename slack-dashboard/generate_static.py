@@ -98,24 +98,24 @@ def compute_alert(current: int, previous: int) -> str:
         return ""
     drop = (previous - current) / previous
     if drop >= RED_THRESHOLD:
-        return "Red !"
+        return "\U0001f6a8危険"
     if drop >= YELLOW_THRESHOLD:
-        return "Yellow !"
+        return "\u26a0\ufe0f注意"
     return ""
 
 
 def alert_class(alert: str) -> str:
-    if "Red" in alert:
+    if "危険" in alert:
         return "alert-red"
-    if "Yellow" in alert:
+    if "注意" in alert:
         return "alert-yellow"
     return ""
 
 
 def row_alert_level(msg_alert: str, rxn_alert: str) -> str:
-    if "Red" in msg_alert or "Red" in rxn_alert:
+    if "危険" in msg_alert or "危険" in rxn_alert:
         return "red"
-    if "Yellow" in msg_alert or "Yellow" in rxn_alert:
+    if "注意" in msg_alert or "注意" in rxn_alert:
         return "yellow"
     return "none"
 
@@ -188,16 +188,7 @@ def build_3month_rows(df: pd.DataFrame, months: list) -> str:
 
 
 def build_alert_summary(items_list: list) -> str:
-    if not items_list:
-        return '<div class="alert-summary ok">アラート対象者はいません</div>'
-    items = []
-    for name, reasons, level in items_list:
-        icon = "&#x1F534;" if level == "red" else "&#x1F7E1;"
-        reason_html = " / ".join(reasons)
-        items.append(f'<li class="alert-item alert-item-{level}">{icon} <strong>{name}</strong>: {reason_html}</li>')
-    return f"""<div class="alert-summary warning">
-      <h3>アラート対象者 ({len(items_list)}名)</h3>
-      <ul>{''.join(items)}</ul></div>"""
+    return ""
 
 
 def collect_alerts(df, msg_curr_col, msg_prev_col, rxn_curr_col, rxn_prev_col):
@@ -215,7 +206,7 @@ def collect_alerts(df, msg_curr_col, msg_prev_col, rxn_curr_col, rxn_prev_col):
             dp = round((rp - rc) / rp * 100) if rp > 0 else 0
             reasons.append(f"リアクション {ra} ({rp} → {rc}, -{dp}%)")
         if reasons:
-            level = "red" if any("Red" in r for r in reasons) else "yellow"
+            level = "red" if any("危険" in r for r in reasons) else "yellow"
             alerts.append((row["display_name"], reasons, level))
     return alerts
 
@@ -371,8 +362,8 @@ def generate_html(
 <div class="container">
 
   <div class="description">
-    投稿数・リアクション数を期間比較し、前期間比で<strong>30%以上低下→Yellow</strong>、
-    <strong>50%以上低下→Red</strong>アラートを表示。
+    投稿数・リアクション数を期間比較し、前期間比で<strong>30%以上低下→⚠️注意</strong>、
+    <strong>50%以上低下→🚨危険</strong>アラートを表示。
     リアクションが多いチームは雰囲気・生産性が高い傾向にあります。早期フォローでモチベーション低下を防ぎましょう。
   </div>
 
@@ -389,7 +380,6 @@ def generate_html(
       <div class="kpi"><div class="label">当期間リアクション</div><div class="value">{tab30_stats['current_rxn']:,}</div><div class="sub">前期間: {tab30_stats['prev_rxn']:,}</div></div>
       <div class="kpi"><div class="label">アラート対象</div><div class="value" style="color:{'var(--red-text)' if tab30_stats['alert_count']>0 else 'var(--green-text)'}">{tab30_stats['alert_count']}名</div></div>
     </div>
-    {tab30_alert}
     <div class="section">
       <h2>30日間比較（{prev_label} vs {curr_label}）</h2>
       <div class="toolbar">
@@ -397,7 +387,7 @@ def generate_html(
         <label>絞り込み:</label>
         <select id="filter30" onchange="applyFilters('tab30')">
           <option value="all">全員</option><option value="alert">アラートのみ</option>
-          <option value="red">Red ! のみ</option><option value="yellow">Yellow ! のみ</option>
+          <option value="red">🚨危険のみ</option><option value="yellow">⚠️注意のみ</option>
           <option value="none">アラートなし</option>
         </select>
       </div>
@@ -441,7 +431,6 @@ def generate_html(
       <div class="kpi"><div class="label">{month_labels[2]}リアクション</div><div class="value">{tab3m_stats['current_rxn']:,}</div><div class="sub">{month_labels[1]}: {tab3m_stats['prev_rxn']:,}</div></div>
       <div class="kpi"><div class="label">アラート対象</div><div class="value" style="color:{'var(--red-text)' if tab3m_stats['alert_count']>0 else 'var(--green-text)'}">{tab3m_stats['alert_count']}名</div></div>
     </div>
-    {tab3m_alert}
     <div class="section">
       <h2>月次比較（{month_labels[0]}〜{month_labels[2]}）</h2>
       <div class="toolbar">
@@ -449,7 +438,7 @@ def generate_html(
         <label>絞り込み:</label>
         <select id="filter3m" onchange="applyFilters('tab3m')">
           <option value="all">全員</option><option value="alert">アラートのみ</option>
-          <option value="red">Red ! のみ</option><option value="yellow">Yellow ! のみ</option>
+          <option value="red">🚨危険のみ</option><option value="yellow">⚠️注意のみ</option>
           <option value="none">アラートなし</option>
         </select>
       </div>
@@ -541,7 +530,7 @@ function sortTable(tableId, col) {{
   rows.forEach(r => tbody.appendChild(r));
 }}
 
-function alertRank(t) {{ return t.includes('Red') ? 2 : t.includes('Yellow') ? 1 : 0; }}
+function alertRank(t) {{ return t.includes('危険') ? 2 : t.includes('注意') ? 1 : 0; }}
 
 function applyFilters(tabId) {{
   const sfx = tabId === 'tab30' ? '30' : '3m';
