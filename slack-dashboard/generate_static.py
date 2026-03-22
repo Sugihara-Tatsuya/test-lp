@@ -494,7 +494,7 @@ function sortTable(tableId, col) {{
   const table = document.getElementById(tableId);
   const tbody = table.querySelector('tbody');
   const rows = Array.from(tbody.querySelectorAll('tr'));
-  if (!sortState[tableId]) sortState[tableId] = {{ col: col, dir: 'desc' }};
+  if (!sortState[tableId]) sortState[tableId] = {{ col: null, dir: 'desc' }};
   const st = sortState[tableId];
   st.dir = st.col === col ? (st.dir === 'asc' ? 'desc' : 'asc') : 'desc';
   st.col = col;
