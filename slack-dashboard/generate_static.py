@@ -521,7 +521,7 @@ function sortTable(tableId, col) {{
       va = alertRank(a.cells[ci].textContent.trim());
       vb = alertRank(b.cells[ci].textContent.trim());
     }} else {{
-      const key = col.replace('-','');
+      const key = col.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
       va = parseInt(a.dataset[key]) || 0;
       vb = parseInt(b.dataset[key]) || 0;
     }}
