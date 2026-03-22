@@ -1,0 +1,16 @@
+collection:
+  # "all" fetches all public channels; or list specific channel IDs
+  channels: "all"
+  # channels:
+  #   - C01ABCDEF
+  #   - C02GHIJKL
+  exclude_prefixes:
+    - aws
+    - xo_order
+  initial_history_days: 90
+  schedule_interval_minutes: 30
+
+dashboard:
+  default_period: "weekly"
+  top_n_users: 20
+  timezone: "Asia/Tokyo"

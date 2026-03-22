@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Generate a static HTML dashboard (spreadsheet-style) for GitHub Pages.
 
-Shows per-user monthly comparison of message counts and reaction counts
-with Yellow/Red alerts when activity drops significantly.
+Two tabs:
+  1. 30-day comparison (current 30 days vs previous 30 days)
+  2. 3-month comparison (current month, last month, 2 months ago)
+
+Includes sort, filter, and alert functionality via JavaScript.
 """
 
 from __future__ import annotations
@@ -25,97 +28,72 @@ from db.queries import get_all_channels
 
 OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "docs")
 
-# Alert thresholds (drop % from previous month)
-YELLOW_THRESHOLD = 0.30  # 30% drop
-RED_THRESHOLD = 0.50     # 50% drop
+YELLOW_THRESHOLD = 0.30
+RED_THRESHOLD = 0.50
 
 
-def get_monthly_user_stats(
+def get_period_user_stats(
     conn: sqlite3.Connection,
-    months: list[str],
+    period_start: str,
+    period_end: str,
+    label: str,
     channel_ids: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Get per-user message count and reaction count for each month.
+    ch_filter_msg = ""
+    ch_filter_rxn = ""
+    msg_params = [period_start, period_end]
+    rxn_params = []
 
-    Returns DataFrame with columns:
-      user_id, display_name, msg_YYYY-MM, rxn_YYYY-MM (for each month)
-    """
-    placeholders = ""
-    params = []
     if channel_ids:
         ph = ", ".join("?" for _ in channel_ids)
-        placeholders = f"AND m.channel_id IN ({ph})"
-        params.extend(channel_ids)
+        ch_filter_msg = f"AND m.channel_id IN ({ph})"
+        ch_filter_rxn = f"AND r.channel_id IN ({ph})"
+        msg_params.extend(channel_ids)
+        rxn_params.extend(channel_ids)
 
-    # Message counts per user per month
-    month_cases_msg = []
-    month_cases_rxn = []
-    for m in months:
-        month_cases_msg.append(
-            f"SUM(CASE WHEN strftime('%Y-%m', m.posted_at) = '{m}' THEN 1 ELSE 0 END) AS \"msg_{m}\""
-        )
+    rxn_params.extend([period_start, period_end])
 
     msg_query = f"""
         SELECT m.user_id,
                COALESCE(u.display_name, m.user_id) AS display_name,
-               {', '.join(month_cases_msg)}
+               COUNT(*) AS "msg_{label}"
         FROM messages m
         LEFT JOIN users u ON m.user_id = u.user_id
-        WHERE m.is_reply = 0
-          AND m.user_id IS NOT NULL
-          {placeholders}
-          AND strftime('%Y-%m', m.posted_at) IN ({', '.join('?' for _ in months)})
+        WHERE m.is_reply = 0 AND m.user_id IS NOT NULL
+          AND m.posted_at >= ? AND m.posted_at < ?
+          {ch_filter_msg}
         GROUP BY m.user_id
     """
-    msg_params = list(params) + list(months)
     msg_df = pd.read_sql_query(msg_query, conn, params=msg_params)
-
-    # Reaction counts (received) per user per month
-    rxn_cases = []
-    for m in months:
-        rxn_cases.append(
-            f"SUM(CASE WHEN strftime('%Y-%m', m2.posted_at) = '{m}' THEN 1 ELSE 0 END) AS \"rxn_{m}\""
-        )
 
     rxn_query = f"""
         SELECT r.message_user_id AS user_id,
                COALESCE(u.display_name, r.message_user_id) AS display_name,
-               {', '.join(rxn_cases)}
+               COUNT(*) AS "rxn_{label}"
         FROM reactions r
         JOIN messages m2 ON r.channel_id = m2.channel_id AND r.message_ts = m2.ts
         LEFT JOIN users u ON r.message_user_id = u.user_id
         WHERE r.message_user_id IS NOT NULL
-          {'AND r.channel_id IN (' + ', '.join('?' for _ in channel_ids) + ')' if channel_ids else ''}
-          AND strftime('%Y-%m', m2.posted_at) IN ({', '.join('?' for _ in months)})
+          {ch_filter_rxn}
+          AND m2.posted_at >= ? AND m2.posted_at < ?
         GROUP BY r.message_user_id
     """
-    rxn_params = (list(channel_ids) if channel_ids else []) + list(months)
     rxn_df = pd.read_sql_query(rxn_query, conn, params=rxn_params)
 
-    # Merge
     if msg_df.empty and rxn_df.empty:
         return pd.DataFrame()
-
     if msg_df.empty:
-        df = rxn_df
-    elif rxn_df.empty:
-        df = msg_df
-    else:
-        df = pd.merge(msg_df, rxn_df.drop(columns=["display_name"]),
-                       on="user_id", how="outer")
-        # Fill display_name from whichever side has it
-        df["display_name"] = df["display_name"].fillna(df["user_id"])
+        return rxn_df
+    if rxn_df.empty:
+        return msg_df
 
-    # Fill NaN with 0
-    for col in df.columns:
-        if col.startswith("msg_") or col.startswith("rxn_"):
-            df[col] = df[col].fillna(0).astype(int)
-
+    df = pd.merge(msg_df, rxn_df.drop(columns=["display_name"]),
+                   on="user_id", how="outer")
+    df["display_name"] = df["display_name"].fillna(df["user_id"])
     return df
 
 
 def compute_alert(current: int, previous: int) -> str:
-    """Return alert level based on drop from previous month."""
     if previous == 0:
         return ""
     drop = (previous - current) / previous
@@ -126,154 +104,126 @@ def compute_alert(current: int, previous: int) -> str:
     return ""
 
 
+def alert_class(alert: str) -> str:
+    if "Red" in alert:
+        return "alert-red"
+    if "Yellow" in alert:
+        return "alert-yellow"
+    return ""
+
+
+def row_alert_level(msg_alert: str, rxn_alert: str) -> str:
+    if "Red" in msg_alert or "Red" in rxn_alert:
+        return "red"
+    if "Yellow" in msg_alert or "Yellow" in rxn_alert:
+        return "yellow"
+    return "none"
+
+
 def get_non_log_channel_ids(conn) -> list:
-    """Return channel IDs excluding aws-* log channels."""
     channels_df = get_all_channels(conn)
-    filtered = channels_df[~channels_df["channel_name"].str.startswith("aws")]
+    filtered = channels_df[
+        ~channels_df["channel_name"].str.startswith("aws")
+        & ~channels_df["channel_name"].str.startswith("xo_order")
+    ]
     return filtered["channel_id"].tolist() if not filtered.empty else None
 
 
-def build_table_html(df: pd.DataFrame, months: list[str]) -> str:
-    """Build the spreadsheet-style HTML table."""
-    month_labels = []
-    for m in months:
-        y, mo = m.split("-")
-        month_labels.append(f"{int(mo)}月")
+def filter_df(df: pd.DataFrame, conn: sqlite3.Connection, cols: list) -> pd.DataFrame:
+    """Remove bots and zero-activity users."""
+    for col in cols:
+        if col not in df.columns:
+            df[col] = 0
+        df[col] = df[col].fillna(0).astype(int)
+    df = df[df[cols].sum(axis=1) > 0]
+    bot_ids = set(r[0] for r in conn.execute("SELECT user_id FROM users WHERE is_bot = 1").fetchall())
+    return df[~df["user_id"].isin(bot_ids)]
 
-    # Sort by current month message count descending
-    current_msg_col = f"msg_{months[-1]}"
-    if current_msg_col in df.columns:
-        df = df.sort_values(current_msg_col, ascending=False)
 
+# ── 30-day tab ──────────────────────────────────────────────────
+
+def build_30day_rows(df: pd.DataFrame) -> str:
     rows = []
-
-    # Build rows
     for _, row in df.iterrows():
-        name = row["display_name"]
-        cells = f'<td class="name-cell">{name}</td>'
-
-        # Message counts + alert
-        msg_vals = []
-        for m in months:
-            col = f"msg_{m}"
-            val = int(row.get(col, 0))
-            msg_vals.append(val)
-            cells += f'<td class="num">{val:,}</td>'
-
-        # Message alert (current vs previous month)
-        if len(msg_vals) >= 2:
-            alert = compute_alert(msg_vals[-1], msg_vals[-2])
-            cls = "alert-red" if "Red" in alert else ("alert-yellow" if "Yellow" in alert else "")
-            cells += f'<td class="alert {cls}">{alert}</td>'
-        else:
-            cells += '<td class="alert"></td>'
-
-        # Reaction counts + alert
-        rxn_vals = []
-        for m in months:
-            col = f"rxn_{m}"
-            val = int(row.get(col, 0))
-            rxn_vals.append(val)
-            cells += f'<td class="num">{val:,}</td>'
-
-        # Reaction alert
-        if len(rxn_vals) >= 2:
-            alert = compute_alert(rxn_vals[-1], rxn_vals[-2])
-            cls = "alert-red" if "Red" in alert else ("alert-yellow" if "Yellow" in alert else "")
-            cells += f'<td class="alert {cls}">{alert}</td>'
-        else:
-            cells += '<td class="alert"></td>'
-
-        rows.append(f"<tr>{cells}</tr>")
-
-    # Summary row
-    summary_cells = '<td class="name-cell summary">合計</td>'
-    for m in months:
-        col = f"msg_{m}"
-        total = int(df[col].sum()) if col in df.columns else 0
-        summary_cells += f'<td class="num summary">{total:,}</td>'
-    summary_cells += '<td class="alert"></td>'
-    for m in months:
-        col = f"rxn_{m}"
-        total = int(df[col].sum()) if col in df.columns else 0
-        summary_cells += f'<td class="num summary">{total:,}</td>'
-    summary_cells += '<td class="alert"></td>'
-
-    return f"""
-    <div class="table-wrapper">
-    <table id="main-table">
-      <thead>
-        <tr class="header-group">
-          <th rowspan="2" class="name-header">ユーザー名</th>
-          <th colspan="{len(months) + 1}" class="group-header msg-group">メッセージ数</th>
-          <th colspan="{len(months) + 1}" class="group-header rxn-group">リアクション数</th>
-        </tr>
-        <tr class="header-sub">
-          {''.join(f'<th class="num">{ml}</th>' for ml in month_labels)}
-          <th>アラート</th>
-          {''.join(f'<th class="num">{ml}</th>' for ml in month_labels)}
-          <th>アラート</th>
-        </tr>
-      </thead>
-      <tbody>
-        {''.join(rows)}
-      </tbody>
-      <tfoot>
-        <tr>{summary_cells}</tr>
-      </tfoot>
-    </table>
-    </div>
-    """
+        mp, mc = int(row.get("msg_prev", 0)), int(row.get("msg_curr", 0))
+        rp, rc = int(row.get("rxn_prev", 0)), int(row.get("rxn_curr", 0))
+        ma, ra = compute_alert(mc, mp), compute_alert(rc, rp)
+        rl = row_alert_level(ma, ra)
+        rows.append(
+            f'<tr data-alert="{rl}" data-msg-curr="{mc}" data-msg-prev="{mp}" '
+            f'data-rxn-curr="{rc}" data-rxn-prev="{rp}">'
+            f'<td class="name-cell">{row["display_name"]}</td>'
+            f'<td class="num">{mp:,}</td><td class="num">{mc:,}</td>'
+            f'<td class="alert {alert_class(ma)}">{ma}</td>'
+            f'<td class="num">{rp:,}</td><td class="num">{rc:,}</td>'
+            f'<td class="alert {alert_class(ra)}">{ra}</td></tr>'
+        )
+    return "\n".join(rows)
 
 
-def build_alert_summary(df: pd.DataFrame, months: list[str]) -> str:
-    """Build a summary of users with alerts."""
-    alerts = []
-    current_msg = f"msg_{months[-1]}"
-    prev_msg = f"msg_{months[-2]}" if len(months) >= 2 else None
-    current_rxn = f"rxn_{months[-1]}"
-    prev_rxn = f"rxn_{months[-2]}" if len(months) >= 2 else None
+# ── 3-month tab ─────────────────────────────────────────────────
 
+def build_3month_rows(df: pd.DataFrame, months: list) -> str:
+    rows = []
     for _, row in df.iterrows():
-        name = row["display_name"]
-        reasons = []
-        if prev_msg and prev_msg in df.columns and current_msg in df.columns:
-            alert = compute_alert(int(row.get(current_msg, 0)), int(row.get(prev_msg, 0)))
-            if alert:
-                prev_val = int(row.get(prev_msg, 0))
-                curr_val = int(row.get(current_msg, 0))
-                drop_pct = round((prev_val - curr_val) / prev_val * 100) if prev_val > 0 else 0
-                reasons.append(f"メッセージ {alert} ({prev_val} → {curr_val}, -{drop_pct}%)")
-        if prev_rxn and prev_rxn in df.columns and current_rxn in df.columns:
-            alert = compute_alert(int(row.get(current_rxn, 0)), int(row.get(prev_rxn, 0)))
-            if alert:
-                prev_val = int(row.get(prev_rxn, 0))
-                curr_val = int(row.get(current_rxn, 0))
-                drop_pct = round((prev_val - curr_val) / prev_val * 100) if prev_val > 0 else 0
-                reasons.append(f"リアクション {alert} ({prev_val} → {curr_val}, -{drop_pct}%)")
-        if reasons:
-            level = "red" if any("Red" in r for r in reasons) else "yellow"
-            alerts.append((name, reasons, level))
+        m0 = int(row.get(f"msg_{months[0]}", 0))
+        m1 = int(row.get(f"msg_{months[1]}", 0))
+        m2 = int(row.get(f"msg_{months[2]}", 0))
+        r0 = int(row.get(f"rxn_{months[0]}", 0))
+        r1 = int(row.get(f"rxn_{months[1]}", 0))
+        r2 = int(row.get(f"rxn_{months[2]}", 0))
+        ma = compute_alert(m2, m1)
+        ra = compute_alert(r2, r1)
+        rl = row_alert_level(ma, ra)
+        rows.append(
+            f'<tr data-alert="{rl}" data-m0="{m0}" data-m1="{m1}" data-m2="{m2}" '
+            f'data-r0="{r0}" data-r1="{r1}" data-r2="{r2}">'
+            f'<td class="name-cell">{row["display_name"]}</td>'
+            f'<td class="num">{m0:,}</td><td class="num">{m1:,}</td><td class="num">{m2:,}</td>'
+            f'<td class="alert {alert_class(ma)}">{ma}</td>'
+            f'<td class="num">{r0:,}</td><td class="num">{r1:,}</td><td class="num">{r2:,}</td>'
+            f'<td class="alert {alert_class(ra)}">{ra}</td></tr>'
+        )
+    return "\n".join(rows)
 
-    if not alerts:
+
+def build_alert_summary(items_list: list) -> str:
+    if not items_list:
         return '<div class="alert-summary ok">アラート対象者はいません</div>'
-
     items = []
-    for name, reasons, level in alerts:
+    for name, reasons, level in items_list:
         icon = "&#x1F534;" if level == "red" else "&#x1F7E1;"
         reason_html = " / ".join(reasons)
         items.append(f'<li class="alert-item alert-item-{level}">{icon} <strong>{name}</strong>: {reason_html}</li>')
-
-    return f"""
-    <div class="alert-summary warning">
-      <h3>アラート対象者 ({len(alerts)}名)</h3>
-      <ul>{''.join(items)}</ul>
-    </div>
-    """
+    return f"""<div class="alert-summary warning">
+      <h3>アラート対象者 ({len(items_list)}名)</h3>
+      <ul>{''.join(items)}</ul></div>"""
 
 
-def generate_html(table_html: str, alert_html: str, months: list[str], stats: dict) -> str:
-    month_labels = [f"{int(m.split('-')[1])}月" for m in months]
+def collect_alerts(df, msg_curr_col, msg_prev_col, rxn_curr_col, rxn_prev_col):
+    alerts = []
+    for _, row in df.iterrows():
+        reasons = []
+        mc, mp = int(row.get(msg_curr_col, 0)), int(row.get(msg_prev_col, 0))
+        rc, rp = int(row.get(rxn_curr_col, 0)), int(row.get(rxn_prev_col, 0))
+        ma = compute_alert(mc, mp)
+        if ma:
+            dp = round((mp - mc) / mp * 100) if mp > 0 else 0
+            reasons.append(f"メッセージ {ma} ({mp} → {mc}, -{dp}%)")
+        ra = compute_alert(rc, rp)
+        if ra:
+            dp = round((rp - rc) / rp * 100) if rp > 0 else 0
+            reasons.append(f"リアクション {ra} ({rp} → {rc}, -{dp}%)")
+        if reasons:
+            level = "red" if any("Red" in r for r in reasons) else "yellow"
+            alerts.append((row["display_name"], reasons, level))
+    return alerts
+
+
+def generate_html(
+    tab30_rows, tab30_alert, tab30_stats, prev_label, curr_label,
+    tab3m_rows, tab3m_alert, tab3m_stats, month_labels, months,
+) -> str:
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -300,23 +250,43 @@ def generate_html(table_html: str, alert_html: str, months: list[str], stats: di
   }}
   header h1 {{ font-size: 1.6rem; margin-bottom: 0.2rem; }}
   header p {{ opacity: 0.85; font-size: 0.9rem; }}
-
   .container {{ max-width: 1400px; margin: 0 auto; padding: 1.5rem; }}
 
-  /* KPI cards */
+  /* Tabs */
+  .tab-bar {{
+    display: flex; gap: 0; margin-bottom: 1.5rem;
+    border-bottom: 2px solid var(--border);
+  }}
+  .tab-btn {{
+    padding: 0.8rem 1.5rem; border: none; background: none;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    color: #636e72; border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+  }}
+  .tab-btn:hover {{ color: var(--accent); }}
+  .tab-btn.active {{
+    color: var(--accent); border-bottom-color: var(--accent);
+  }}
+  .tab-content {{ display: none; }}
+  .tab-content.active {{ display: block; }}
+
+  .description {{
+    background: var(--card-bg); border-radius: 10px; padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--accent);
+    font-size: 0.88rem; line-height: 1.7; color: #636e72;
+  }}
   .kpi-row {{
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1rem; margin-bottom: 1.5rem;
   }}
   .kpi {{
-    background: var(--card-bg); border-radius: 10px; padding: 1.2rem;
+    background: var(--card-bg); border-radius: 10px; padding: 1rem;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06); text-align: center;
   }}
-  .kpi .label {{ font-size: 0.8rem; color: #636e72; margin-bottom: 0.3rem; }}
-  .kpi .value {{ font-size: 1.8rem; font-weight: 700; color: var(--accent); }}
-  .kpi .sub {{ font-size: 0.75rem; color: #b2bec3; margin-top: 0.2rem; }}
-
-  /* Alert summary */
+  .kpi .label {{ font-size: 0.78rem; color: #636e72; margin-bottom: 0.2rem; }}
+  .kpi .value {{ font-size: 1.6rem; font-weight: 700; color: var(--accent); }}
+  .kpi .sub {{ font-size: 0.72rem; color: #b2bec3; margin-top: 0.15rem; }}
   .alert-summary {{
     background: var(--card-bg); border-radius: 10px; padding: 1.2rem 1.5rem;
     margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -325,19 +295,9 @@ def generate_html(table_html: str, alert_html: str, months: list[str], stats: di
   .alert-summary.warning {{ border-left: 4px solid var(--yellow-bg); }}
   .alert-summary h3 {{ font-size: 1rem; margin-bottom: 0.8rem; color: var(--yellow-text); }}
   .alert-summary ul {{ list-style: none; }}
-  .alert-item {{ padding: 0.4rem 0; font-size: 0.9rem; }}
+  .alert-item {{ padding: 0.3rem 0; font-size: 0.88rem; }}
   .alert-item-red {{ color: var(--red-text); }}
   .alert-item-yellow {{ color: var(--yellow-text); }}
-
-  /* Description */
-  .description {{
-    background: var(--card-bg); border-radius: 10px; padding: 1.2rem 1.5rem;
-    margin-bottom: 1.5rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    border-left: 4px solid var(--accent);
-    font-size: 0.88rem; line-height: 1.7; color: #636e72;
-  }}
-
-  /* Table */
   .section {{
     background: var(--card-bg); border-radius: 10px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
@@ -347,14 +307,22 @@ def generate_html(table_html: str, alert_html: str, months: list[str], stats: di
     font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent);
     padding-bottom: 0.4rem; border-bottom: 2px solid var(--accent);
   }}
+  .toolbar {{
+    display: flex; flex-wrap: wrap; gap: 0.8rem; margin-bottom: 1rem; align-items: center;
+  }}
+  .toolbar input {{
+    padding: 0.5rem 0.8rem; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.9rem; width: 220px;
+  }}
+  .toolbar input:focus {{ outline: none; border-color: var(--accent); }}
+  .toolbar select {{
+    padding: 0.5rem 0.8rem; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 0.85rem; background: #fff; cursor: pointer;
+  }}
+  .toolbar label {{ font-size: 0.85rem; color: #636e72; }}
   .table-wrapper {{ overflow-x: auto; }}
-  table {{
-    width: 100%; border-collapse: collapse; font-size: 0.85rem;
-    white-space: nowrap;
-  }}
-  th, td {{
-    padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border);
-  }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }}
+  th, td {{ padding: 0.55rem 0.8rem; border-bottom: 1px solid var(--border); }}
   .header-group th {{
     text-align: center; font-weight: 700; font-size: 0.9rem;
     border-bottom: 2px solid var(--border);
@@ -364,105 +332,231 @@ def generate_html(table_html: str, alert_html: str, months: list[str], stats: di
   .header-sub th {{
     text-align: center; font-weight: 600; font-size: 0.8rem;
     background: #f8f9fa; border-bottom: 2px solid var(--border);
+    cursor: pointer; user-select: none;
   }}
+  .header-sub th:hover {{ background: #e9ecef; }}
+  .header-sub th.sort-asc::after {{ content: " ▲"; font-size: 0.7rem; }}
+  .header-sub th.sort-desc::after {{ content: " ▼"; font-size: 0.7rem; }}
   .name-header {{
     text-align: left !important; background: #f8f9fa !important;
-    min-width: 160px; position: sticky; left: 0; z-index: 2;
+    min-width: 160px; position: sticky; left: 0; z-index: 2; cursor: pointer;
   }}
   .name-cell {{
     font-weight: 500; position: sticky; left: 0;
     background: #fff; z-index: 1; min-width: 160px;
   }}
   td.num, th.num {{ text-align: right; font-variant-numeric: tabular-nums; }}
-  td.alert {{
-    text-align: center; font-weight: 700; font-size: 0.8rem;
-    min-width: 80px;
-  }}
+  td.alert {{ text-align: center; font-weight: 700; font-size: 0.8rem; min-width: 80px; }}
   .alert-yellow {{ background: var(--yellow-bg); color: var(--yellow-text); }}
   .alert-red {{ background: var(--red-bg); color: var(--red-text); }}
   .summary {{ font-weight: 700; background: #f1f3f5 !important; }}
   tbody tr:hover td {{ background: #f0f4ff; }}
   tbody tr:hover .name-cell {{ background: #f0f4ff; }}
   tfoot td {{ border-top: 2px solid var(--border); }}
-
-  /* Search */
-  .search-box {{
-    margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;
-  }}
-  .search-box input {{
-    padding: 0.5rem 0.8rem; border: 1px solid var(--border);
-    border-radius: 6px; font-size: 0.9rem; width: 260px;
-  }}
-  .search-box input:focus {{ outline: none; border-color: var(--accent); }}
-
-  footer {{
-    text-align: center; padding: 2rem; color: #b2bec3; font-size: 0.8rem;
-  }}
+  footer {{ text-align: center; padding: 2rem; color: #b2bec3; font-size: 0.8rem; }}
   @media (max-width: 768px) {{
     header {{ padding: 1.2rem; }}
     .container {{ padding: 0.8rem; }}
     .kpi-row {{ grid-template-columns: repeat(2, 1fr); }}
+    .toolbar {{ flex-direction: column; }}
+    .toolbar input {{ width: 100%; }}
   }}
 </style>
 </head>
 <body>
 <header>
   <h1>Slack Activity Dashboard</h1>
-  <p>月次レポート | {months[0]} 〜 {months[-1]} | 生成日: {date.today().isoformat()}</p>
+  <p>生成日: {date.today().isoformat()}</p>
 </header>
 <div class="container">
 
   <div class="description">
-    Slackの投稿数とリアクション数を月次で集計し、前月比で30%以上低下した場合に<strong>Yellow</strong>、
-    50%以上低下した場合に<strong>Red</strong>アラートを表示します。
-    リアクション数が多いチームは雰囲気や生産性が高い傾向にあります。
-    早期にフォローすることで、モチベーション低下を防ぎましょう。
+    投稿数・リアクション数を期間比較し、前期間比で<strong>30%以上低下→Yellow</strong>、
+    <strong>50%以上低下→Red</strong>アラートを表示。
+    リアクションが多いチームは雰囲気・生産性が高い傾向にあります。早期フォローでモチベーション低下を防ぎましょう。
   </div>
 
-  <div class="kpi-row">
-    <div class="kpi">
-      <div class="label">対象ユーザー数</div>
-      <div class="value">{stats['total_users']}</div>
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('tab30')">30日間比較</button>
+    <button class="tab-btn" onclick="switchTab('tab3m')">直近3ヶ月</button>
+  </div>
+
+  <!-- ===== 30-day tab ===== -->
+  <div id="tab30" class="tab-content active">
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">対象ユーザー</div><div class="value">{tab30_stats['total_users']}</div></div>
+      <div class="kpi"><div class="label">当期間メッセージ</div><div class="value">{tab30_stats['current_msg']:,}</div><div class="sub">前期間: {tab30_stats['prev_msg']:,}</div></div>
+      <div class="kpi"><div class="label">当期間リアクション</div><div class="value">{tab30_stats['current_rxn']:,}</div><div class="sub">前期間: {tab30_stats['prev_rxn']:,}</div></div>
+      <div class="kpi"><div class="label">アラート対象</div><div class="value" style="color:{'var(--red-text)' if tab30_stats['alert_count']>0 else 'var(--green-text)'}">{tab30_stats['alert_count']}名</div></div>
     </div>
-    <div class="kpi">
-      <div class="label">当月メッセージ数</div>
-      <div class="value">{stats['current_msg']:,}</div>
-      <div class="sub">前月: {stats['prev_msg']:,}</div>
-    </div>
-    <div class="kpi">
-      <div class="label">当月リアクション数</div>
-      <div class="value">{stats['current_rxn']:,}</div>
-      <div class="sub">前月: {stats['prev_rxn']:,}</div>
-    </div>
-    <div class="kpi">
-      <div class="label">アラート対象者</div>
-      <div class="value" style="color: {'var(--red-text)' if stats['alert_count'] > 0 else 'var(--green-text)'}">
-        {stats['alert_count']}名
+    {tab30_alert}
+    <div class="section">
+      <h2>30日間比較（{prev_label} vs {curr_label}）</h2>
+      <div class="toolbar">
+        <input type="text" id="search30" placeholder="ユーザー名で検索..." oninput="applyFilters('tab30')">
+        <label>絞り込み:</label>
+        <select id="filter30" onchange="applyFilters('tab30')">
+          <option value="all">全員</option><option value="alert">アラートのみ</option>
+          <option value="red">Red ! のみ</option><option value="yellow">Yellow ! のみ</option>
+          <option value="none">アラートなし</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+      <table id="table30">
+        <thead>
+          <tr class="header-group">
+            <th rowspan="2" class="name-header" onclick="sortTable('table30','name')">ユーザー名</th>
+            <th colspan="3" class="group-header msg-group">メッセージ数</th>
+            <th colspan="3" class="group-header rxn-group">リアクション数</th>
+          </tr>
+          <tr class="header-sub">
+            <th class="num" data-col="msg-prev" onclick="sortTable('table30','msg-prev')">前30日</th>
+            <th class="num sort-desc" data-col="msg-curr" onclick="sortTable('table30','msg-curr')">直近30日</th>
+            <th data-col="msg-alert" onclick="sortTable('table30','msg-alert')">アラート</th>
+            <th class="num" data-col="rxn-prev" onclick="sortTable('table30','rxn-prev')">前30日</th>
+            <th class="num" data-col="rxn-curr" onclick="sortTable('table30','rxn-curr')">直近30日</th>
+            <th data-col="rxn-alert" onclick="sortTable('table30','rxn-alert')">アラート</th>
+          </tr>
+        </thead>
+        <tbody>{tab30_rows}</tbody>
+        <tfoot><tr>
+          <td class="name-cell summary">合計</td>
+          <td class="num summary">{tab30_stats['prev_msg']:,}</td>
+          <td class="num summary">{tab30_stats['current_msg']:,}</td>
+          <td class="alert"></td>
+          <td class="num summary">{tab30_stats['prev_rxn']:,}</td>
+          <td class="num summary">{tab30_stats['current_rxn']:,}</td>
+          <td class="alert"></td>
+        </tr></tfoot>
+      </table>
       </div>
     </div>
   </div>
 
-  {alert_html}
-
-  <div class="section">
-    <h2>月次アクティビティ一覧</h2>
-    <div class="search-box">
-      <input type="text" id="search" placeholder="ユーザー名で検索..." oninput="filterTable()">
+  <!-- ===== 3-month tab ===== -->
+  <div id="tab3m" class="tab-content">
+    <div class="kpi-row">
+      <div class="kpi"><div class="label">対象ユーザー</div><div class="value">{tab3m_stats['total_users']}</div></div>
+      <div class="kpi"><div class="label">{month_labels[2]}メッセージ</div><div class="value">{tab3m_stats['current_msg']:,}</div><div class="sub">{month_labels[1]}: {tab3m_stats['prev_msg']:,}</div></div>
+      <div class="kpi"><div class="label">{month_labels[2]}リアクション</div><div class="value">{tab3m_stats['current_rxn']:,}</div><div class="sub">{month_labels[1]}: {tab3m_stats['prev_rxn']:,}</div></div>
+      <div class="kpi"><div class="label">アラート対象</div><div class="value" style="color:{'var(--red-text)' if tab3m_stats['alert_count']>0 else 'var(--green-text)'}">{tab3m_stats['alert_count']}名</div></div>
     </div>
-    {table_html}
+    {tab3m_alert}
+    <div class="section">
+      <h2>月次比較（{month_labels[0]}〜{month_labels[2]}）</h2>
+      <div class="toolbar">
+        <input type="text" id="search3m" placeholder="ユーザー名で検索..." oninput="applyFilters('tab3m')">
+        <label>絞り込み:</label>
+        <select id="filter3m" onchange="applyFilters('tab3m')">
+          <option value="all">全員</option><option value="alert">アラートのみ</option>
+          <option value="red">Red ! のみ</option><option value="yellow">Yellow ! のみ</option>
+          <option value="none">アラートなし</option>
+        </select>
+      </div>
+      <div class="table-wrapper">
+      <table id="table3m">
+        <thead>
+          <tr class="header-group">
+            <th rowspan="2" class="name-header" onclick="sortTable('table3m','name')">ユーザー名</th>
+            <th colspan="4" class="group-header msg-group">メッセージ数</th>
+            <th colspan="4" class="group-header rxn-group">リアクション数</th>
+          </tr>
+          <tr class="header-sub">
+            <th class="num" data-col="m0" onclick="sortTable('table3m','m0')">{month_labels[0]}</th>
+            <th class="num" data-col="m1" onclick="sortTable('table3m','m1')">{month_labels[1]}</th>
+            <th class="num sort-desc" data-col="m2" onclick="sortTable('table3m','m2')">{month_labels[2]}</th>
+            <th data-col="msg-alert" onclick="sortTable('table3m','msg-alert')">アラート</th>
+            <th class="num" data-col="r0" onclick="sortTable('table3m','r0')">{month_labels[0]}</th>
+            <th class="num" data-col="r1" onclick="sortTable('table3m','r1')">{month_labels[1]}</th>
+            <th class="num" data-col="r2" onclick="sortTable('table3m','r2')">{month_labels[2]}</th>
+            <th data-col="rxn-alert" onclick="sortTable('table3m','rxn-alert')">アラート</th>
+          </tr>
+        </thead>
+        <tbody>{tab3m_rows}</tbody>
+        <tfoot><tr>
+          <td class="name-cell summary">合計</td>
+          <td class="num summary">{tab3m_stats['m0_msg']:,}</td>
+          <td class="num summary">{tab3m_stats['prev_msg']:,}</td>
+          <td class="num summary">{tab3m_stats['current_msg']:,}</td>
+          <td class="alert"></td>
+          <td class="num summary">{tab3m_stats['m0_rxn']:,}</td>
+          <td class="num summary">{tab3m_stats['prev_rxn']:,}</td>
+          <td class="num summary">{tab3m_stats['current_rxn']:,}</td>
+          <td class="alert"></td>
+        </tr></tfoot>
+      </table>
+      </div>
+    </div>
   </div>
 
 </div>
-<footer>
-  Generated from Slack workspace data. Updated {date.today().isoformat()}.
-</footer>
+<footer>Generated from Slack workspace data. Updated {date.today().isoformat()}.</footer>
 <script>
-function filterTable() {{
-  const q = document.getElementById('search').value.toLowerCase();
-  const rows = document.querySelectorAll('#main-table tbody tr');
-  rows.forEach(row => {{
+const sortState = {{}};
+
+function switchTab(tabId) {{
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  event.target.classList.add('active');
+}}
+
+function sortTable(tableId, col) {{
+  const table = document.getElementById(tableId);
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  if (!sortState[tableId]) sortState[tableId] = {{ col: col, dir: 'desc' }};
+  const st = sortState[tableId];
+  st.dir = st.col === col ? (st.dir === 'asc' ? 'desc' : 'asc') : 'desc';
+  st.col = col;
+
+  table.querySelectorAll('.header-sub th, .name-header').forEach(th => {{
+    th.classList.remove('sort-asc', 'sort-desc');
+  }});
+  const hdr = col === 'name'
+    ? table.querySelector('.name-header')
+    : table.querySelector(`th[data-col="${{col}}"]`);
+  if (hdr) hdr.classList.add(st.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+
+  rows.sort((a, b) => {{
+    let va, vb;
+    if (col === 'name') {{
+      va = a.cells[0].textContent.toLowerCase();
+      vb = b.cells[0].textContent.toLowerCase();
+      return st.dir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    }}
+    if (col === 'msg-alert' || col === 'rxn-alert') {{
+      const ci = col === 'msg-alert'
+        ? (tableId === 'table30' ? 3 : 4)
+        : (tableId === 'table30' ? 6 : 8);
+      va = alertRank(a.cells[ci].textContent.trim());
+      vb = alertRank(b.cells[ci].textContent.trim());
+    }} else {{
+      const key = col.replace('-','');
+      va = parseInt(a.dataset[key]) || 0;
+      vb = parseInt(b.dataset[key]) || 0;
+    }}
+    return st.dir === 'asc' ? va - vb : vb - va;
+  }});
+  rows.forEach(r => tbody.appendChild(r));
+}}
+
+function alertRank(t) {{ return t.includes('Red') ? 2 : t.includes('Yellow') ? 1 : 0; }}
+
+function applyFilters(tabId) {{
+  const sfx = tabId === 'tab30' ? '30' : '3m';
+  const q = document.getElementById('search' + sfx).value.toLowerCase();
+  const f = document.getElementById('filter' + sfx).value;
+  const tableId = tabId === 'tab30' ? 'table30' : 'table3m';
+  document.querySelectorAll('#' + tableId + ' tbody tr').forEach(row => {{
     const name = row.cells[0].textContent.toLowerCase();
-    row.style.display = name.includes(q) ? '' : 'none';
+    const alert = row.dataset.alert;
+    let am = true;
+    if (f === 'alert') am = alert !== 'none';
+    else if (f === 'red') am = alert === 'red';
+    else if (f === 'yellow') am = alert === 'yellow';
+    else if (f === 'none') am = alert === 'none';
+    row.style.display = (name.includes(q) && am) ? '' : 'none';
   }});
 }}
 </script>
@@ -470,72 +564,136 @@ function filterTable() {{
 </html>"""
 
 
+def get_monthly_user_stats(conn, months, channel_ids):
+    """Get per-user msg/rxn for each of 3 months."""
+    ch_filter_msg = ""
+    ch_filter_rxn = ""
+    msg_params = []
+    rxn_params = []
+    if channel_ids:
+        ph = ", ".join("?" for _ in channel_ids)
+        ch_filter_msg = f"AND m.channel_id IN ({ph})"
+        ch_filter_rxn = f"AND r.channel_id IN ({ph})"
+        msg_params.extend(channel_ids)
+        rxn_params.extend(channel_ids)
+
+    msg_cases = ", ".join(
+        f"SUM(CASE WHEN strftime('%Y-%m', m.posted_at)='{m}' THEN 1 ELSE 0 END) AS \"msg_{m}\""
+        for m in months
+    )
+    msg_query = f"""
+        SELECT m.user_id, COALESCE(u.display_name, m.user_id) AS display_name, {msg_cases}
+        FROM messages m LEFT JOIN users u ON m.user_id = u.user_id
+        WHERE m.is_reply = 0 AND m.user_id IS NOT NULL {ch_filter_msg}
+          AND strftime('%Y-%m', m.posted_at) IN ({','.join('?' for _ in months)})
+        GROUP BY m.user_id
+    """
+    msg_df = pd.read_sql_query(msg_query, conn, params=msg_params + list(months))
+
+    rxn_cases = ", ".join(
+        f"SUM(CASE WHEN strftime('%Y-%m', m2.posted_at)='{m}' THEN 1 ELSE 0 END) AS \"rxn_{m}\""
+        for m in months
+    )
+    rxn_query = f"""
+        SELECT r.message_user_id AS user_id, COALESCE(u.display_name, r.message_user_id) AS display_name, {rxn_cases}
+        FROM reactions r
+        JOIN messages m2 ON r.channel_id = m2.channel_id AND r.message_ts = m2.ts
+        LEFT JOIN users u ON r.message_user_id = u.user_id
+        WHERE r.message_user_id IS NOT NULL {ch_filter_rxn}
+          AND strftime('%Y-%m', m2.posted_at) IN ({','.join('?' for _ in months)})
+        GROUP BY r.message_user_id
+    """
+    rxn_df = pd.read_sql_query(rxn_query, conn, params=rxn_params + list(months))
+
+    if msg_df.empty and rxn_df.empty:
+        return pd.DataFrame()
+    if msg_df.empty:
+        return rxn_df
+    if rxn_df.empty:
+        return msg_df
+    df = pd.merge(msg_df, rxn_df.drop(columns=["display_name"]), on="user_id", how="outer")
+    df["display_name"] = df["display_name"].fillna(df["user_id"])
+    return df
+
+
 def main():
     conn = init_db()
-
     today = date.today()
-    # Compute 3 months: 2 months ago, last month, current month
-    current_month = today.replace(day=1)
-    prev_month = (current_month - timedelta(days=1)).replace(day=1)
-    prev_prev_month = (prev_month - timedelta(days=1)).replace(day=1)
-
-    months = [
-        prev_prev_month.strftime("%Y-%m"),
-        prev_month.strftime("%Y-%m"),
-        current_month.strftime("%Y-%m"),
-    ]
-
-    print(f"Generating dashboard for months: {months}")
-
-    # Exclude aws-* log channels
     channel_ids = get_non_log_channel_ids(conn)
 
-    # Get stats
-    df = get_monthly_user_stats(conn, months, channel_ids)
+    # ── 30-day comparison ──
+    curr_end = today
+    curr_start = today - timedelta(days=30)
+    prev_end = curr_start
+    prev_start = curr_start - timedelta(days=30)
 
-    if df.empty:
-        print("No data found.")
-        conn.close()
-        return
+    df_prev = get_period_user_stats(conn, prev_start.isoformat(), prev_end.isoformat(), "prev", channel_ids)
+    df_curr = get_period_user_stats(conn, curr_start.isoformat(), curr_end.isoformat(), "curr", channel_ids)
 
-    # Filter out users with zero activity across all months
-    activity_cols = [c for c in df.columns if c.startswith("msg_") or c.startswith("rxn_")]
-    df = df[df[activity_cols].sum(axis=1) > 0]
+    if df_prev.empty and df_curr.empty:
+        df30 = pd.DataFrame(columns=["user_id", "display_name", "msg_prev", "msg_curr", "rxn_prev", "rxn_curr"])
+    elif df_prev.empty:
+        df30 = df_curr
+    elif df_curr.empty:
+        df30 = df_prev
+    else:
+        df30 = pd.merge(df_prev, df_curr.drop(columns=["display_name"]), on="user_id", how="outer")
+        df30["display_name"] = df30["display_name"].fillna(df30["user_id"])
 
-    # Filter out bots
-    bot_ids = set(
-        row[0] for row in conn.execute(
-            "SELECT user_id FROM users WHERE is_bot = 1"
-        ).fetchall()
-    )
-    df = df[~df["user_id"].isin(bot_ids)]
+    df30 = filter_df(df30, conn, ["msg_prev", "msg_curr", "rxn_prev", "rxn_curr"])
+    df30 = df30.sort_values("msg_curr", ascending=False)
 
-    # Compute stats
-    current_msg_col = f"msg_{months[-1]}"
-    prev_msg_col = f"msg_{months[-2]}"
-    current_rxn_col = f"rxn_{months[-1]}"
-    prev_rxn_col = f"rxn_{months[-2]}"
-
-    alert_count = 0
-    for _, row in df.iterrows():
-        msg_alert = compute_alert(int(row.get(current_msg_col, 0)), int(row.get(prev_msg_col, 0)))
-        rxn_alert = compute_alert(int(row.get(current_rxn_col, 0)), int(row.get(prev_rxn_col, 0)))
-        if msg_alert or rxn_alert:
-            alert_count += 1
-
-    stats = {
-        "total_users": len(df),
-        "current_msg": int(df[current_msg_col].sum()) if current_msg_col in df.columns else 0,
-        "prev_msg": int(df[prev_msg_col].sum()) if prev_msg_col in df.columns else 0,
-        "current_rxn": int(df[current_rxn_col].sum()) if current_rxn_col in df.columns else 0,
-        "prev_rxn": int(df[prev_rxn_col].sum()) if prev_rxn_col in df.columns else 0,
-        "alert_count": alert_count,
+    alerts30 = collect_alerts(df30, "msg_curr", "msg_prev", "rxn_curr", "rxn_prev")
+    tab30_stats = {
+        "total_users": len(df30),
+        "current_msg": int(df30["msg_curr"].sum()),
+        "prev_msg": int(df30["msg_prev"].sum()),
+        "current_rxn": int(df30["rxn_curr"].sum()),
+        "prev_rxn": int(df30["rxn_prev"].sum()),
+        "alert_count": len(alerts30),
     }
 
-    # Build HTML
-    table_html = build_table_html(df, months)
-    alert_html = build_alert_summary(df, months)
-    html = generate_html(table_html, alert_html, months, stats)
+    # ── 3-month comparison ──
+    cm = today.replace(day=1)
+    pm = (cm - timedelta(days=1)).replace(day=1)
+    ppm = (pm - timedelta(days=1)).replace(day=1)
+    months = [ppm.strftime("%Y-%m"), pm.strftime("%Y-%m"), cm.strftime("%Y-%m")]
+    month_labels = [f"{int(m.split('-')[1])}月" for m in months]
+
+    df3m = get_monthly_user_stats(conn, months, channel_ids)
+    cols3m = [f"msg_{m}" for m in months] + [f"rxn_{m}" for m in months]
+    if not df3m.empty:
+        df3m = filter_df(df3m, conn, cols3m)
+        df3m = df3m.sort_values(f"msg_{months[-1]}", ascending=False)
+    else:
+        df3m = pd.DataFrame(columns=["user_id", "display_name"] + cols3m)
+
+    alerts3m = collect_alerts(df3m, f"msg_{months[-1]}", f"msg_{months[-2]}",
+                              f"rxn_{months[-1]}", f"rxn_{months[-2]}")
+    tab3m_stats = {
+        "total_users": len(df3m),
+        "current_msg": int(df3m[f"msg_{months[-1]}"].sum()),
+        "prev_msg": int(df3m[f"msg_{months[-2]}"].sum()),
+        "m0_msg": int(df3m[f"msg_{months[0]}"].sum()),
+        "current_rxn": int(df3m[f"rxn_{months[-1]}"].sum()),
+        "prev_rxn": int(df3m[f"rxn_{months[-2]}"].sum()),
+        "m0_rxn": int(df3m[f"rxn_{months[0]}"].sum()),
+        "alert_count": len(alerts3m),
+    }
+
+    # ── Generate HTML ──
+    html = generate_html(
+        tab30_rows=build_30day_rows(df30),
+        tab30_alert=build_alert_summary(alerts30),
+        tab30_stats=tab30_stats,
+        prev_label=f"{prev_start.isoformat()} 〜 {prev_end.isoformat()}",
+        curr_label=f"{curr_start.isoformat()} 〜 {curr_end.isoformat()}",
+        tab3m_rows=build_3month_rows(df3m, months),
+        tab3m_alert=build_alert_summary(alerts3m),
+        tab3m_stats=tab3m_stats,
+        month_labels=month_labels,
+        months=months,
+    )
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     out_path = os.path.join(OUTPUT_DIR, "index.html")
@@ -543,8 +701,9 @@ def main():
         f.write(html)
 
     conn.close()
-    print(f"Static dashboard written to {out_path}")
-    print(f"  Users: {stats['total_users']}, Alerts: {stats['alert_count']}")
+    print(f"Dashboard written to {out_path}")
+    print(f"  30-day: {tab30_stats['total_users']} users, {tab30_stats['alert_count']} alerts")
+    print(f"  3-month: {tab3m_stats['total_users']} users, {tab3m_stats['alert_count']} alerts")
 
 
 if __name__ == "__main__":

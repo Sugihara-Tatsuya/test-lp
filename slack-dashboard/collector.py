@@ -141,7 +141,7 @@ def run_collection(config: dict) -> None:
     all_channels = fetcher.fetch_channels()
     upsert_channels(conn, all_channels)
 
-    # Filter channels if configured — only target channels where bot is a member
+    # Filter channels — auto-join enabled (channels:join scope required)
     # Exclude log channels (prefixed with "aws")
     exclude_prefixes = config["collection"].get("exclude_prefixes", ["aws"])
     channel_filter = config["collection"].get("channels", "all")
@@ -149,7 +149,6 @@ def run_collection(config: dict) -> None:
         target_channels = [
             ch for ch in all_channels
             if not ch["is_archived"]
-            and ch.get("is_member", False)
             and not any(ch["channel_name"].startswith(p) for p in exclude_prefixes)
         ]
     else:
@@ -157,10 +156,9 @@ def run_collection(config: dict) -> None:
         target_channels = [
             ch for ch in all_channels
             if ch["channel_id"] in filter_set
-            and ch.get("is_member", False)
             and not any(ch["channel_name"].startswith(p) for p in exclude_prefixes)
         ]
-    logger.info("Target channels (bot is member, excl. prefixes %s): %d / %d total",
+    logger.info("Target channels (excl. prefixes %s): %d / %d total",
                 exclude_prefixes, len(target_channels), len(all_channels))
 
     # Default oldest for new channels
