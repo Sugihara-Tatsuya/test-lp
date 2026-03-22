@@ -122,10 +122,28 @@ def row_alert_level(msg_alert: str, rxn_alert: str) -> str:
 
 def get_non_log_channel_ids(conn) -> list:
     channels_df = get_all_channels(conn)
+    # Exclude by prefix
     filtered = channels_df[
         ~channels_df["channel_name"].str.startswith("aws")
         & ~channels_df["channel_name"].str.startswith("xo_order")
     ]
+    if filtered.empty:
+        return None
+    # Exclude channels where bot messages >= 80%
+    bot_heavy = pd.read_sql_query(
+        """
+        SELECT m.channel_id,
+               COUNT(*) AS total,
+               SUM(CASE WHEN u.is_bot = 1 THEN 1 ELSE 0 END) AS bot_cnt
+        FROM messages m
+        LEFT JOIN users u ON m.user_id = u.user_id
+        GROUP BY m.channel_id
+        HAVING total >= 100 AND CAST(bot_cnt AS REAL) / total >= 0.8
+        """,
+        conn,
+    )
+    exclude_ids = set(bot_heavy["channel_id"].tolist())
+    filtered = filtered[~filtered["channel_id"].isin(exclude_ids)]
     return filtered["channel_id"].tolist() if not filtered.empty else None
 
 
