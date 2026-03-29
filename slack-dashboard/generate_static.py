@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -401,7 +401,7 @@ def generate_html(
 <body>
 <header>
   <h1>Slack Activity Dashboard</h1>
-  <p>生成日: {date.today().isoformat()}</p>
+  <p>最終更新: {datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')} (JST)</p>
 </header>
 <div class="container">
 
@@ -527,7 +527,7 @@ def generate_html(
   </div>
 
 </div>
-<footer>Generated from Slack workspace data. Updated {date.today().isoformat()}.</footer>
+<footer>Generated from Slack workspace data. Updated {datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M')} JST.</footer>
 <script>
 const sortState = {{}};
 
