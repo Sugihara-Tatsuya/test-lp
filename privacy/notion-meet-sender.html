@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>プライバシーポリシー | Notion Meet → 共有DB送信</title>
+<style>
+  body {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    font-size: 15px;
+    line-height: 1.9;
+    color: #222;
+  }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .updated { color: #888; font-size: 13px; margin-bottom: 32px; }
+  h2 { font-size: 18px; margin: 36px 0 12px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+  ul { padding-left: 22px; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<h1>プライバシーポリシー</h1>
+<p class="updated">Chrome拡張機能「Notion Meet → 共有DB送信」／最終更新日: 2026年9月3日</p>
+
+<p>本プライバシーポリシーは、クロスマート株式会社（以下「当社」）が提供するChrome拡張機能「Notion Meet → 共有DB送信」（以下「本拡張機能」）における、ユーザーデータの収集・利用・保存・共有について定めるものです。本拡張機能は当社の社内業務用ツールであり、当社の役職員のみが利用します。</p>
+
+<h2>1. 収集する情報</h2>
+<p>本拡張機能は、以下の情報を取り扱います。</p>
+<ul>
+  <li><strong>ユーザーが設定画面で入力する情報</strong>：Notion APIトークン、共有データベースID、Anthropic APIキー、担当者名</li>
+  <li><strong>ユーザーが開いているNotionページの情報</strong>：ページタイトル、URL、会議書き起こし等の本文テキスト（ユーザーが送信操作を行ったページのみ）</li>
+</ul>
+<p>本拡張機能は、閲覧履歴、位置情報、Cookie、その他上記以外の個人情報を収集しません。</p>
+
+<h2>2. 情報の利用目的</h2>
+<ul>
+  <li>会議書き起こしページを、ユーザー自身が指定するNotion共有データベースへ転記・登録するため</li>
+  <li>Anthropic API（Claude）を用いて、議事録の要約・情報抽出を生成するため</li>
+  <li>処理の完了・失敗をデスクトップ通知でユーザーに知らせるため</li>
+</ul>
+
+<h2>3. 情報の保存</h2>
+<ul>
+  <li>APIトークン等の設定情報は、Chromeが提供する拡張機能用ストレージ（chrome.storage）に、<strong>ユーザーの端末内にのみ</strong>保存されます</li>
+  <li>当社が運営する外部サーバーへの送信・保存は一切行いません</li>
+  <li>設定情報は、設定画面からの削除または本拡張機能のアンインストールによりいつでも削除できます</li>
+</ul>
+
+<h2>4. 情報の外部送信・共有</h2>
+<p>本拡張機能が外部と通信するのは、機能の実行に必要な以下のAPIのみです。</p>
+<ul>
+  <li><strong>Notion API（api.notion.com）</strong>：ページ内容の読み取り、およびユーザー自身のNotionワークスペース内の共有データベースへの登録のため</li>
+  <li><strong>Anthropic API（api.anthropic.com）</strong>：議事録テキストを送信し、要約・情報抽出結果を受け取るため</li>
+</ul>
+<p>いずれもユーザー自身が設定したAPIトークン・APIキーによる認証のもと、ユーザーの操作を起点として通信します。当社は、取得した情報を上記以外の第三者に販売・譲渡・共有することはありません。また、信用情報の判断や広告目的での利用は行いません。</p>
+
+<h2>5. お問い合わせ</h2>
+<p>本ポリシーに関するお問い合わせは、下記までご連絡ください。</p>
+<p>クロスマート株式会社<br>sugihara@xmart.co.jp</p>
+
+<h2>6. 改定</h2>
+<p>本ポリシーは、機能の変更等に応じて改定されることがあります。重要な変更がある場合は、本ページにて告知します。</p>
+</body>
+</html>
